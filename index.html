@@ -1075,7 +1075,7 @@
 <!-- ПОДКЛЮЧАЕМ FIREBASE И ЛОГИКУ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
   // Твой конфиг Firebase
   const firebaseConfig = {
@@ -1234,9 +1234,21 @@
     }
   });
 
-  window.handleGoogleAuth = function() {
-    showToast('Вход через Google пока недоступен', true);
-  }
+  window.handleGoogleAuth = async function() {
+   const provider = new GoogleAuthProvider();
+   try {
+     await signInWithPopup(auth, provider);
+     showToast('Успешный вход через Google! 🎉');
+     closeAuth();
+   } catch (error) {
+     console.error(error);
+     if (error.code === 'auth/popup-closed-by-user') {
+       // Пользователь сам закрыл окно, ничего не делаем
+     } else {
+       showToast('Ошибка входа: ' + error.message, true);
+     }
+   }
+ }
 
   window.selectPlan = function(planName, price) {
     if (!currentUser) {
