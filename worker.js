@@ -14,14 +14,11 @@ export default {
       const body = await request.json();
       const email = body.email || `trial_${Math.random().toString(36).substring(7)}`;
 
-      // Берем токен из секретов Cloudflare (env.API_TOKEN), а не из кода
       const API_TOKEN = env.API_TOKEN; 
-      if (!API_TOKEN) {
-        throw new Error("API_TOKEN не задан в настройках Worker");
-      }
+      if (!API_TOKEN) throw new Error("API_TOKEN не задан в настройках");
 
-      const API_URL = "http://us2.h1cloud.net:25686/api/create"; // Проверь эндпоинт в доке H1
-      const INBOUND_ID = "ib_91e7f61456"; // Твой ID инбаунда
+      const API_URL = "http://us2.h1cloud.net:25686/api/create"; 
+      const INBOUND_ID = "ib_91e7f61456"; // Твой ID инбаунда из старого конфига
 
       const response = await fetch(API_URL, {
         method: "POST",
@@ -29,20 +26,35 @@ export default {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${API_TOKEN}`
         },
+        // ⚡️ ИСПРАВЛЕНО ПО ДОКУМЕНТАЦИИ
         body: JSON.stringify({
           name: email,
-          days: 1,
-          traffic_gb: 5,
-          inbound_id: INBOUND_ID
+          days: 1,                   // 1 день
+          traffic_limit_gb: 5,       // 5 ГБ
+          device_limit: 2,           // 2 устройства
+          manual: true,              // Принудительно используем наши инбаунды
+          inbound_ids: [INBOUND_ID]  // Передаем массивом, как требует H1
         })
       });
 
       const data = await response.json();
-      if (!response.ok) throw new Error(data.message || "Ошибка панели H1");
+      
+      // H1 возвращает ok: false при ошибке
+      if (!response.ok || data.ok === false) {
+        throw new Error(data.error || "Ошибка панели H1");
+      }
+
+      // ⚡️ ИСПРАВЛЕНО: Ссылка лежит внутри объекта data.client
+      const clientData = data.client || {};
+      const link = clientData.sub_url || clientData.subscription_url;
+
+      if (!link) {
+        throw new Error("Панель не вернула ссылку на подписку");
+      }
 
       return new Response(JSON.stringify({ 
         success: true, 
-        link: data.link || data.subscription_url || data.config 
+        link: link 
       }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" }
       });
