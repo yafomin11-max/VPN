@@ -14,6 +14,7 @@
     --text: #e8e8ec;
     --text-dim: #7a7a85;
     --error: #f87171;
+    --success: #4ade80;
   }
 
   html { scroll-behavior: smooth; }
@@ -457,6 +458,27 @@
   }
   .plan .btn { width: 100%; justify-content: center; }
 
+  /* ===== СТИЛИ РОЗЫГРЫША ===== */
+  .giveaway-container { display: flex; flex-direction: column; gap: 40px; max-width: 800px; margin: 0 auto; }
+  .prizes-wrap { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; }
+  .prize-card {
+    background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center;
+    transition: all 0.3s;
+  }
+  .prize-card:hover { transform: translateY(-5px); }
+  .prize-card:first-child { border-color: #ffd700; box-shadow: 0 0 20px rgba(255,215,0,0.1); }
+  .prize-card:nth-child(2) { border-color: #c0c0c0; }
+  .prize-card:nth-child(3) { border-color: #cd7f32; }
+  .prize-place { font-size: 14px; color: var(--text-dim); margin-bottom: 10px; }
+  .prize-name { font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 5px; }
+  .prize-price { font-size: 16px; color: #aaa; }
+  .ref-box { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 16px; padding: 30px; text-align: center; }
+  .ref-input-wrap { display: flex; gap: 10px; }
+  .ref-input-wrap input { text-align: center; font-size: 14px; }
+  .leaderboard { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 16px; padding: 30px; }
+  .leader-row { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); color: #fff; font-size: 15px; }
+  .leader-row:last-child { border-bottom: none; }
+
   .apps {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
@@ -739,6 +761,7 @@
     .auth-modal { padding: 32px 24px 24px; }
     .nav-user-email { display: none; }
     .logo-img { height: 28px; }
+    .ref-input-wrap { flex-direction: column; }
   }
 
   .toast {
@@ -776,7 +799,7 @@
     <li><button onclick="scrollToSection('features')">Возможности</button></li>
     <li><button onclick="scrollToSection('servers')">Серверы</button></li>
     <li><button onclick="scrollToSection('pricing')">Тарифы</button></li>
-    <li><button onclick="scrollToSection('apps')">Клиенты</button></li>
+    <li><button onclick="scrollToSection('giveaway')">Конкурс 🎁</button></li>
     <li><button onclick="scrollToSection('faq')">FAQ</button></li>
   </ul>
   <button class="nav-cta" id="navCtaBtn" onclick="openAuth('register')">Подключиться</button>
@@ -812,7 +835,7 @@
       <div class="stat-label">Логов</div>
     </div>
     <div class="stat">
-      <div class="stat-value">2</div> <!-- ИЗМЕНЕНО НА 2 -->
+      <div class="stat-value">2</div>
       <div class="stat-label">Сервера</div>
     </div>
     <div class="stat">
@@ -869,19 +892,14 @@
   <p class="section-sub">Мы расширяемся. Новые локации появятся в ближайшее время.</p>
 
   <div class="servers-wrap">
-    <!-- Сервер США (Онлайн) -->
     <div class="server">
       <span class="server-name">🇺🇸 США · Нью-Йорк</span>
       <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
     </div>
-    
-    <!-- Сервер Германия (ТЕПЕРЬ ОНЛАЙН) -->
     <div class="server">
       <span class="server-name">🇩🇪 Германия · Франкфурт</span>
       <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
     </div>
-
-    <!-- Будущие серверы (скоро) -->
     <div class="server soon">
       <span class="server-name">🇳🇱 Нидерланды</span>
       <span class="server-ping"><span class="ping-dot"></span>скоро</span>
@@ -934,6 +952,52 @@
         <li>Поддержка в Telegram</li>
       </ul>
       <button class="btn btn-secondary" onclick="selectPlan('3 месяца', 597)">Выбрать</button>
+    </div>
+  </div>
+</section>
+
+<!-- СЕКЦИЯ РОЗЫГРЫША -->
+<section id="giveaway">
+  <h2 class="section-title">Конкурс на подписки</h2>
+  <p class="section-sub">Приглашай друзей и получай премиум-доступ бесплатно!</p>
+
+  <div class="giveaway-container">
+    <div class="prizes-wrap">
+      <div class="prize-card">
+        <div class="prize-place">🥇 1 место</div>
+        <div class="prize-name">Подписка на Год</div>
+        <div class="prize-price">1 790₽</div>
+      </div>
+      <div class="prize-card">
+        <div class="prize-place">🥈 2 место</div>
+        <div class="prize-name">3 месяца</div>
+        <div class="prize-price">597₽</div>
+      </div>
+      <div class="prize-card">
+        <div class="prize-place">🥉 3 место</div>
+        <div class="prize-name">1 месяц</div>
+        <div class="prize-price">299₽</div>
+      </div>
+    </div>
+
+    <div class="ref-box">
+      <h3 style="color: #fff; margin-bottom: 10px;">Твоя ссылка для приглашений</h3>
+      <p style="color: var(--text-dim); font-size: 14px; margin-bottom: 20px;">Отправь её друзьям. Когда они зарегистрируются, ты получишь +1 балл.</p>
+      
+      <div class="ref-input-wrap">
+        <input type="text" id="refLinkInput" readonly class="auth-input" value="Сначала войдите в аккаунт">
+        <button onclick="copyRefLink()" class="btn btn-primary" id="refCopyBtn">Скопировать</button>
+      </div>
+      <div style="margin-top: 15px; color: #fff; font-weight: bold;">
+        Ваших приглашений: <span id="myRefCount" style="color: var(--success);">0</span>
+      </div>
+    </div>
+
+    <div class="leaderboard">
+      <h3 style="color: #fff; text-align: center; margin-bottom: 20px;">🏆 Топ участников</h3>
+      <div id="leaderboardList">
+        <p style="text-align: center; color: var(--text-dim);">Загрузка...</p>
+      </div>
     </div>
   </div>
 </section>
@@ -1076,6 +1140,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  // Добавляем Firestore
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
   // Твой конфиг Firebase
   const firebaseConfig = {
@@ -1090,6 +1156,11 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
+  const db = getFirestore(app); // Инициализация БД
+
+  // Считываем параметр ref из URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const referrerUid = urlParams.get('ref');
 
   // ⚠️ ЗАМЕНИ НА URL ТВОЕГО CLOUDFLARE WORKER
   const WORKER_URL = "https://vpn.yafomin11.workers.dev";
@@ -1191,7 +1262,26 @@
 
     try {
       if (currentMode === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // Сохраняем пользователя в Firestore
+        await setDoc(doc(db, "users", user.uid), {
+          email: user.email,
+          referralCount: 0,
+          referredBy: referrerUid || null,
+          createdAt: new Date()
+        });
+
+        // Начисляем балл пригласившему, если есть ref
+        if (referrerUid) {
+          const refDocRef = doc(db, "users", referrerUid);
+          const refDoc = await getDoc(refDocRef);
+          if (refDoc.exists()) {
+            await updateDoc(refDocRef, { referralCount: increment(1) });
+          }
+        }
+
         showToast('Аккаунт создан! Добро пожаловать 🎉');
       } else {
         await signInWithEmailAndPassword(auth, email, password);
@@ -1218,32 +1308,76 @@
     showToast('Вы вышли из аккаунта');
   }
 
-  onAuthStateChanged(auth, (user) => {
+  // Следим за авторизацией + подтягиваем реф-данные
+  onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     const navCta = document.getElementById('navCtaBtn');
     const navUser = document.getElementById('navUser');
     const navUserEmail = document.getElementById('navUserEmail');
+    const refInput = document.getElementById('refLinkInput');
+    const refCount = document.getElementById('myRefCount');
 
     if (user) {
       navCta.style.display = 'none';
       navUser.classList.add('active');
       navUserEmail.textContent = user.email;
+
+      // Генерируем ссылку
+      const myRefLink = window.location.origin + window.location.pathname + '?ref=' + user.uid;
+      if(refInput) refInput.value = myRefLink;
+
+      // Получаем счетчик
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists() && userDoc.data().referralCount) {
+          if(refCount) refCount.textContent = userDoc.data().referralCount;
+        } else {
+          if(refCount) refCount.textContent = "0";
+        }
+      } catch(e) { console.error("Ошибка чтения БД:", e); }
+
     } else {
       navCta.style.display = 'inline-block';
       navUser.classList.remove('active');
+      if(refInput) refInput.value = "Сначала войдите в аккаунт";
+      if(refCount) refCount.textContent = "0";
     }
   });
 
   window.handleGoogleAuth = async function() {
    const provider = new GoogleAuthProvider();
    try {
-     await signInWithPopup(auth, provider);
+     const result = await signInWithPopup(auth, provider);
+     const user = result.user;
+     
+     // Проверяем, есть ли уже документ в базе. Если нет (первый вход) - создаем.
+     const userDocRef = doc(db, "users", user.uid);
+     const userDoc = await getDoc(userDocRef);
+     
+     if (!userDoc.exists()) {
+         await setDoc(userDocRef, {
+            email: user.email,
+            referralCount: 0,
+            referredBy: referrerUid || null,
+            createdAt: new Date()
+         });
+
+         // Начисляем балл, если пришли по ссылке
+         if (referrerUid) {
+            const refDocRef = doc(db, "users", referrerUid);
+            const refDoc = await getDoc(refDocRef);
+            if (refDoc.exists()) {
+              await updateDoc(refDocRef, { referralCount: increment(1) });
+            }
+         }
+     }
+
      showToast('Успешный вход через Google! 🎉');
      closeAuth();
    } catch (error) {
      console.error(error);
      if (error.code === 'auth/popup-closed-by-user') {
-       // Пользователь сам закрыл окно, ничего не делаем
+       // Ничего не делаем
      } else {
        showToast('Ошибка входа: ' + error.message, true);
      }
@@ -1257,12 +1391,8 @@
       return;
     }
     
-    // Твой бот
     const botUsername = "VPN_PARALLELOGRAM_bot"; 
-    
-    // Открываем бота
     window.open(`https://t.me/${botUsername}`, '_blank');
-    
     showToast(`Переходим в Telegram для оплаты...`);
   }
 
@@ -1316,6 +1446,49 @@
     document.getElementById('trialKeyModal').style.display = 'none';
   }
 
+  // --- РЕФЕРАЛЬНАЯ СИСТЕМА (РОЗЫГРЫШ) ---
+  window.copyRefLink = function() {
+    const input = document.getElementById('refLinkInput');
+    if (!input || input.value.includes('Сначала войдите')) return;
+    input.select();
+    document.execCommand('copy');
+    showToast('Ссылка скопирована! Отправь её друзьям.');
+  }
+
+  async function loadLeaderboard() {
+    const list = document.getElementById('leaderboardList');
+    if (!list) return;
+    try {
+      const q = query(collection(db, "users"), orderBy("referralCount", "desc"), limit(3));
+      const querySnapshot = await getDocs(q);
+      
+      let html = '';
+      let place = 1;
+      let icons = ['🥇', '🥈', '🥉'];
+
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        if (data.referralCount > 0) {
+          // Маскируем email (например, ya***@gmail.com)
+          const maskedEmail = data.email.replace(/(.{2})(.*)(@.*)/, "$1***$3");
+          html += `<div class="leader-row">
+                     <span>${icons[place-1]} ${maskedEmail}</span>
+                     <span style="color:var(--success); font-weight:bold;">${data.referralCount} чел.</span>
+                   </div>`;
+          place++;
+        }
+      });
+
+      if (!html) {
+        html = '<p style="text-align: center; color: var(--text-dim);">Пока нет участников. Стань первым!</p>';
+      }
+      list.innerHTML = html;
+    } catch (e) {
+      console.error("Ошибка загрузки топа:", e);
+      list.innerHTML = '<p style="text-align: center; color: var(--text-dim);">Не удалось загрузить топ.</p>';
+    }
+  }
+
   // --- УТИЛИТЫ ---
   let toastTimer;
   window.showToast = function(message, isError = false) {
@@ -1333,6 +1506,9 @@
   document.getElementById('authOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'authOverlay') closeAuth();
   });
+
+  // Запускаем загрузку таблицы лидеров при старте страницы
+  loadLeaderboard();
 </script>
 
 </body>
