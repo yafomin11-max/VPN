@@ -1256,9 +1256,14 @@
       openAuth('register');
       return;
     }
-    // Здесь можно вставить редирект в вашего Telegram-бота:
-    // window.open('https://t.me/your_bot_here?start=' + planName, '_blank');
-    showToast(`Тариф «${planName}» выбран · ${price}₽`);
+    
+    // Твой бот
+    const botUsername = "VPN_PARALLELOGRAM_bot"; 
+    
+    // Открываем бота
+    window.open(`https://t.me/${botUsername}`, '_blank');
+    
+    showToast(`Переходим в Telegram для оплаты...`);
   }
 
   // --- ПОЛУЧЕНИЕ ПРОБНИКА ---
