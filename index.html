@@ -1140,10 +1140,8 @@
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
   import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-  // Добавляем Firestore
   import { getFirestore, doc, getDoc, setDoc, updateDoc, increment, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-  // Твой конфиг Firebase
   const firebaseConfig = {
     apiKey: "AIzaSyCmbFhUIhiQxiW2pna4J_Z_GnOHWLz0Ty8",
     authDomain: "privet-cd1da.firebaseapp.com",
@@ -1156,16 +1154,13 @@
 
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
-  const db = getFirestore(app); // Инициализация БД
+  const db = getFirestore(app);
 
-  // Считываем параметр ref из URL
   const urlParams = new URLSearchParams(window.location.search);
   const referrerUid = urlParams.get('ref');
 
-  // ⚠️ ЗАМЕНИ НА URL ТВОЕГО CLOUDFLARE WORKER
   const WORKER_URL = "https://vpn.yafomin11.workers.dev";
 
-  // --- НАВИГАЦИЯ ---
   window.scrollToSection = function(id) {
     if (id === 'top') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -1178,7 +1173,6 @@
     window.scrollTo({ top, behavior: 'smooth' });
   };
 
-  // --- АВТОРИЗАЦИЯ ---
   let currentMode = 'login';
   let currentUser = null;
 
@@ -1265,7 +1259,6 @@
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Сохраняем пользователя в Firestore
         await setDoc(doc(db, "users", user.uid), {
           email: user.email,
           referralCount: 0,
@@ -1273,12 +1266,15 @@
           createdAt: new Date()
         });
 
-        // Начисляем балл пригласившему, если есть ref
         if (referrerUid) {
-          const refDocRef = doc(db, "users", referrerUid);
-          const refDoc = await getDoc(refDocRef);
-          if (refDoc.exists()) {
-            await updateDoc(refDocRef, { referralCount: increment(1) });
+          try {
+            const refDocRef = doc(db, "users", referrerUid);
+            const refDoc = await getDoc(refDocRef);
+            if (refDoc.exists()) {
+              await updateDoc(refDocRef, { referralCount: increment(1) });
+            }
+          } catch (refError) {
+            console.error("Ошибка начисления реферала:", refError);
           }
         }
 
@@ -1308,7 +1304,6 @@
     showToast('Вы вышли из аккаунта');
   }
 
-  // Следим за авторизацией + подтягиваем реф-данные
   onAuthStateChanged(auth, async (user) => {
     currentUser = user;
     const navCta = document.getElementById('navCtaBtn');
@@ -1322,11 +1317,9 @@
       navUser.classList.add('active');
       navUserEmail.textContent = user.email;
 
-      // Генерируем ссылку
       const myRefLink = window.location.origin + window.location.pathname + '?ref=' + user.uid;
       if(refInput) refInput.value = myRefLink;
 
-      // Получаем счетчик
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists() && userDoc.data().referralCount) {
@@ -1350,7 +1343,6 @@
      const result = await signInWithPopup(auth, provider);
      const user = result.user;
      
-     // Проверяем, есть ли уже документ в базе. Если нет (первый вход) - создаем.
      const userDocRef = doc(db, "users", user.uid);
      const userDoc = await getDoc(userDocRef);
      
@@ -1362,13 +1354,14 @@
             createdAt: new Date()
          });
 
-         // Начисляем балл, если пришли по ссылке
          if (referrerUid) {
-            const refDocRef = doc(db, "users", referrerUid);
-            const refDoc = await getDoc(refDocRef);
-            if (refDoc.exists()) {
-              await updateDoc(refDocRef, { referralCount: increment(1) });
-            }
+            try {
+              const refDocRef = doc(db, "users", referrerUid);
+              const refDoc = await getDoc(refDocRef);
+              if (refDoc.exists()) {
+                await updateDoc(refDocRef, { referralCount: increment(1) });
+              }
+            } catch (refError) { console.error("Ошибка начисления реферала:", refError); }
          }
      }
 
@@ -1396,7 +1389,6 @@
     showToast(`Переходим в Telegram для оплаты...`);
   }
 
-  // --- ПОЛУЧЕНИЕ ПРОБНИКА ---
   window.getTrial = async function() {
     if (!currentUser) {
       showToast('Сначала войдите в аккаунт', true);
@@ -1419,6 +1411,12 @@
         })
       });
 
+      if (!response.ok) {
+        // Если Worker вернул ошибку, пытаемся прочитать текст ошибки
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Ошибка сервера (${response.status}). Попробуйте позже.`);
+      }
+
       const data = await response.json();
 
       if (data.success) {
@@ -1428,7 +1426,8 @@
         showToast(data.error || 'Ошибка сервера', true);
       }
     } catch (err) {
-      showToast('Сетевая ошибка. Попробуйте позже.', true);
+      console.error("Сбой при получении ключа:", err);
+      showToast(err.message || 'Сетевая ошибка. Попробуйте позже.', true);
     } finally {
       btn.innerHTML = originalText;
       btn.disabled = false;
@@ -1446,7 +1445,6 @@
     document.getElementById('trialKeyModal').style.display = 'none';
   }
 
-  // --- РЕФЕРАЛЬНАЯ СИСТЕМА (РОЗЫГРЫШ) ---
   window.copyRefLink = function() {
     const input = document.getElementById('refLinkInput');
     if (!input || input.value.includes('Сначала войдите')) return;
@@ -1469,7 +1467,6 @@
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         if (data.referralCount > 0) {
-          // Маскируем email (например, ya***@gmail.com)
           const maskedEmail = data.email.replace(/(.{2})(.*)(@.*)/, "$1***$3");
           html += `<div class="leader-row">
                      <span>${icons[place-1]} ${maskedEmail}</span>
@@ -1489,7 +1486,6 @@
     }
   }
 
-  // --- УТИЛИТЫ ---
   let toastTimer;
   window.showToast = function(message, isError = false) {
     const toast = document.getElementById('toast');
@@ -1507,7 +1503,6 @@
     if (e.target.id === 'authOverlay') closeAuth();
   });
 
-  // Запускаем загрузку таблицы лидеров при старте страницы
   loadLeaderboard();
 </script>
 
