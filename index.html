@@ -1,0 +1,1322 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>parallelogram.vpn — Свобода без границ</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  
+  :root {
+    --bg: #050507;
+    --neon: #ffffff;
+    --border: rgba(255,255,255,0.08);
+    --text: #e8e8ec;
+    --text-dim: #7a7a85;
+    --error: #f87171;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow-x: hidden;
+    line-height: 1.6;
+    letter-spacing: -0.01em;
+  }
+
+  .bg-grid {
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+    background-size: 60px 60px;
+    pointer-events: none;
+    z-index: 0;
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 80%);
+  }
+
+  .glow {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+  .glow-1 { width: 500px; height: 500px; background: rgba(255,255,255,0.15); top: -150px; left: -100px; }
+  .glow-2 { width: 600px; height: 600px; background: rgba(200,220,255,0.08); bottom: -200px; right: -150px; }
+
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 14px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(20px);
+    background: rgba(5,5,7,0.75);
+    border-bottom: 1px solid var(--border);
+    height: 72px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: inherit;
+  }
+  .logo-img {
+    height: 34px;
+    width: auto;
+    display: block;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+  }
+
+  .nav-links button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    transition: color 0.3s;
+    position: relative;
+    padding: 8px 0;
+  }
+  .nav-links button:hover { color: #fff; }
+  .nav-links button::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 0; height: 1px;
+    background: #fff;
+    transition: width 0.3s;
+    box-shadow: 0 0 10px #fff;
+  }
+  .nav-links button:hover::after { width: 100%; }
+
+  .nav-cta {
+    padding: 10px 20px;
+    background: #fff;
+    color: #000;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    font-family: inherit;
+    transition: all 0.3s;
+  }
+  .nav-cta:hover {
+    box-shadow: 0 0 30px rgba(255,255,255,0.6);
+    transform: translateY(-2px);
+  }
+
+  .nav-user {
+    display: none;
+    align-items: center;
+    gap: 12px;
+  }
+  .nav-user.active { display: flex; }
+  .nav-user-email { font-size: 13px; color: var(--text-dim); }
+  .nav-logout {
+    padding: 8px 14px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s;
+  }
+  .nav-logout:hover { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.25); }
+
+  .hero {
+    position: relative;
+    z-index: 2;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 140px 24px 80px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border: 1px solid var(--border);
+    border-radius: 100px;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 32px;
+    background: rgba(255,255,255,0.02);
+  }
+  .badge-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 10px #fff, 0 0 20px #fff;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+
+  h1 {
+    font-size: clamp(42px, 8vw, 96px);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    margin-bottom: 24px;
+    background: linear-gradient(180deg, #fff 0%, #fff 40%, #666 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    max-width: 1000px;
+  }
+  h1 .accent {
+    display: inline-block;
+    background: linear-gradient(180deg, #fff, #aaa);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero p {
+    font-size: clamp(16px, 2vw, 20px);
+    color: var(--text-dim);
+    max-width: 620px;
+    margin-bottom: 48px;
+  }
+
+  .hero-buttons {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 80px;
+  }
+
+  .btn {
+    padding: 16px 32px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    font-family: inherit;
+    text-decoration: none;
+  }
+  .btn-primary {
+    background: #fff;
+    color: #000;
+    box-shadow: 0 0 40px rgba(255,255,255,0.2);
+  }
+  .btn-primary:hover {
+    box-shadow: 0 0 60px rgba(255,255,255,0.7), 0 0 100px rgba(255,255,255,0.3);
+    transform: translateY(-3px);
+  }
+  .btn-secondary {
+    background: rgba(255,255,255,0.03);
+    color: #fff;
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.3);
+    transform: translateY(-3px);
+  }
+
+  .stats {
+    display: flex;
+    gap: 60px;
+    flex-wrap: wrap;
+    justify-content: center;
+    padding-top: 40px;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    max-width: 800px;
+  }
+  .stat { text-align: center; }
+  .stat-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.03em;
+  }
+  .stat-label {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  section {
+    position: relative;
+    z-index: 2;
+    padding: 120px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    scroll-margin-top: 90px;
+  }
+
+  .section-title {
+    font-size: clamp(32px, 5vw, 56px);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    margin-bottom: 16px;
+    text-align: center;
+    background: linear-gradient(180deg, #fff, #888);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .section-sub {
+    text-align: center;
+    color: var(--text-dim);
+    max-width: 560px;
+    margin: 0 auto 64px;
+    font-size: 16px;
+  }
+
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+
+  .feature {
+    padding: 32px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.005));
+    transition: all 0.4s;
+  }
+  .feature:hover {
+    border-color: rgba(255,255,255,0.2);
+    transform: translateY(-4px);
+    background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.01));
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  }
+  .feature-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
+  .feature h3 { font-size: 18px; font-weight: 700; margin-bottom: 10px; color: #fff; }
+  .feature p { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+
+  .servers-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 12px;
+  }
+  .server {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: rgba(255,255,255,0.015);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+    transition: all 0.3s;
+  }
+  .server:hover {
+    border-color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.04);
+  }
+  .server-name { color: #fff; font-weight: 600; }
+  .server-ping {
+    color: var(--text-dim);
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .ping-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 0 8px #fff;
+  }
+  .server.soon { opacity: 0.5; border-style: dashed; }
+  .server.soon .ping-dot { background: var(--text-dim); box-shadow: none; }
+
+  .pricing {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .plan {
+    padding: 36px 32px;
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+    position: relative;
+    transition: all 0.4s;
+    display: flex;
+    flex-direction: column;
+  }
+  .plan:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-4px); }
+  .plan.featured {
+    background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.01));
+    border-color: rgba(255,255,255,0.25);
+    box-shadow: 0 0 80px rgba(255,255,255,0.08);
+  }
+  .plan.featured::before {
+    content: 'ВЫГОДНО';
+    position: absolute;
+    top: -12px; left: 50%;
+    transform: translateX(-50%);
+    background: #fff;
+    color: #000;
+    padding: 4px 14px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+  }
+  .plan-name {
+    font-size: 14px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .plan-price {
+    font-size: 48px;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: -0.04em;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+  .plan-price span { font-size: 16px; color: var(--text-dim); font-weight: 500; }
+  .plan-period { font-size: 14px; color: var(--text-dim); margin-bottom: 28px; }
+  .plan-features { list-style: none; margin-bottom: 32px; flex: 1; }
+  .plan-features li {
+    padding: 10px 0;
+    font-size: 14px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .plan-features li:last-child { border-bottom: none; }
+  .plan-features li::before {
+    content: '✓';
+    color: #fff;
+    font-weight: 700;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+  }
+  .plan .btn { width: 100%; justify-content: center; }
+
+  .apps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 16px;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .app {
+    padding: 24px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: rgba(255,255,255,0.015);
+    text-decoration: none;
+    color: var(--text);
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .app:hover {
+    border-color: rgba(255,255,255,0.25);
+    background: rgba(255,255,255,0.05);
+    transform: translateY(-3px);
+  }
+  .app-name { font-weight: 700; color: #fff; font-size: 16px; }
+  .app-desc { font-size: 13px; color: var(--text-dim); }
+
+  .faq { max-width: 760px; margin: 0 auto; }
+  .faq-item { border-bottom: 1px solid var(--border); padding: 24px 0; cursor: pointer; }
+  .faq-q {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 17px;
+    font-weight: 600;
+    color: #fff;
+    gap: 20px;
+  }
+  .faq-q::after {
+    content: '+';
+    font-size: 24px;
+    font-weight: 300;
+    color: var(--text-dim);
+    transition: transform 0.3s;
+  }
+  .faq-item.open .faq-q::after { transform: rotate(45deg); color: #fff; }
+  .faq-a {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+    color: var(--text-dim);
+    font-size: 15px;
+    line-height: 1.7;
+  }
+  .faq-item.open .faq-a { max-height: 400px; padding-top: 14px; }
+
+  footer {
+    position: relative;
+    z-index: 2;
+    padding: 60px 24px 40px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+  .footer-logo {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 24px;
+  }
+  .footer-logo img { height: 28px; }
+  .footer-links {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .footer-links a {
+    color: var(--text-dim);
+    text-decoration: none;
+    transition: color 0.3s;
+    font-size: 13px;
+  }
+  .footer-links a:hover { color: #fff; }
+
+  /* ===== МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ ===== */
+  .auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    backdrop-filter: blur(8px);
+    z-index: 999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .auth-overlay.active { display: flex; opacity: 1; }
+  .auth-overlay.active .auth-modal { transform: translateY(0) scale(1); opacity: 1; }
+
+  .auth-modal {
+    width: 100%;
+    max-width: 420px;
+    background: linear-gradient(180deg, #0d0d12, #08080b);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 24px;
+    padding: 40px 32px 32px;
+    position: relative;
+    transform: translateY(20px) scale(0.97);
+    opacity: 0;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 0 100px rgba(255,255,255,0.08), 0 30px 80px rgba(0,0,0,0.8);
+    max-height: 95vh;
+    overflow-y: auto;
+  }
+
+  .auth-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    font-family: inherit;
+  }
+  .auth-close:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+  .auth-title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-bottom: 8px;
+    text-align: center;
+    background: linear-gradient(180deg, #fff, #999);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .auth-sub {
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 28px;
+  }
+  .auth-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+  }
+  .auth-tab {
+    flex: 1;
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.3s;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+  }
+  .auth-tab.active { background: #fff; color: #000; }
+  .auth-field { margin-bottom: 16px; }
+  .auth-label {
+    display: block;
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .auth-input {
+    width: 100%;
+    padding: 14px 16px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 15px;
+    font-family: inherit;
+    transition: all 0.3s;
+    outline: none;
+  }
+  .auth-input:focus {
+    border-color: rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.06);
+    box-shadow: 0 0 0 3px rgba(255,255,255,0.05);
+  }
+  .auth-input.error { border-color: var(--error); background: rgba(248,113,113,0.05); }
+  .auth-error {
+    color: var(--error);
+    font-size: 13px;
+    margin-top: 8px;
+    min-height: 18px;
+    display: block;
+  }
+  .auth-submit {
+    width: 100%;
+    padding: 15px;
+    background: #fff;
+    color: #000;
+    border: none;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    margin-top: 8px;
+    transition: all 0.3s;
+  }
+  .auth-submit:hover { box-shadow: 0 0 60px rgba(255,255,255,0.5); transform: translateY(-2px); }
+  .auth-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-dim);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .auth-divider::before, .auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+  .auth-google {
+    width: 100%;
+    padding: 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  }
+  .auth-google:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.25); }
+  .auth-google svg { width: 18px; height: 18px; }
+  .auth-agree {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 20px;
+    line-height: 1.5;
+  }
+  .auth-agree a { color: var(--text); text-decoration: underline; }
+
+  @media (max-width: 768px) {
+    nav { padding: 12px 20px; height: 64px; }
+    .nav-links { display: none; }
+    .stats { gap: 32px; }
+    section { padding: 80px 20px; scroll-margin-top: 70px; }
+    .hero { padding-top: 100px; }
+    .hero-buttons { flex-direction: column; width: 100%; }
+    .hero-buttons .btn { width: 100%; justify-content: center; }
+    .auth-modal { padding: 32px 24px 24px; }
+    .nav-user-email { display: none; }
+    .logo-img { height: 28px; }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: #fff;
+    color: #000;
+    padding: 14px 24px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    z-index: 1000;
+    box-shadow: 0 10px 40px rgba(255,255,255,0.2);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    max-width: 90vw;
+    text-align: center;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.error { background: var(--error); color: #fff; }
+</style>
+</head>
+<body>
+
+<div class="bg-grid"></div>
+<div class="glow glow-1"></div>
+<div class="glow glow-2"></div>
+
+<nav>
+  <button class="logo" onclick="scrollToSection('top')" aria-label="На главную">
+    <img src="logo.png" alt="parallelogram.vpn" class="logo-img">
+  </button>
+  <ul class="nav-links">
+    <li><button onclick="scrollToSection('features')">Возможности</button></li>
+    <li><button onclick="scrollToSection('servers')">Серверы</button></li>
+    <li><button onclick="scrollToSection('pricing')">Тарифы</button></li>
+    <li><button onclick="scrollToSection('apps')">Клиенты</button></li>
+    <li><button onclick="scrollToSection('faq')">FAQ</button></li>
+  </ul>
+  <button class="nav-cta" id="navCtaBtn" onclick="openAuth('register')">Подключиться</button>
+  <div class="nav-user" id="navUser">
+    <span class="nav-user-email" id="navUserEmail"></span>
+    <button class="nav-logout" onclick="logout()">Выйти</button>
+  </div>
+</nav>
+
+<section class="hero" id="top">
+  <div class="badge">
+    <span class="badge-dot"></span>
+    Серверы онлайн · Работает в России
+  </div>
+  <h1>
+    Твой интернет.<br>
+    Без <span class="accent">границ</span>.
+  </h1>
+  <p>
+    VLESS + Reality. Маскировка под обычный HTTPS. Работает даже при жёстких блокировках.
+  </p>
+  <div class="hero-buttons">
+    <button class="btn btn-primary" id="trialBtn" onclick="getTrial()">
+      🎁 Получить 1 день бесплатно
+    </button>
+    <button class="btn btn-secondary" onclick="scrollToSection('features')">
+      Как это работает
+    </button>
+  </div>
+  <div class="stats">
+    <div class="stat">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Логов</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">2</div> <!-- ИЗМЕНЕНО НА 2 -->
+      <div class="stat-label">Сервера</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">99%</div>
+      <div class="stat-label">Uptime</div>
+    </div>
+    <div class="stat">
+      <div class="stat-value">24/7</div>
+      <div class="stat-label">Поддержка</div>
+    </div>
+  </div>
+</section>
+
+<section id="features">
+  <h2 class="section-title">Создан для тех,<br>кто ценит свободу</h2>
+  <p class="section-sub">Современный протокол, который сложно заблокировать.</p>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">🛡</div>
+      <h3>VLESS + Reality</h3>
+      <p>Трафик маскируется под обычное HTTPS-соединение с популярным сайтом. DPI не отличает его от обычного пользователя.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">⚡</div>
+      <h3>Скорость без потерь</h3>
+      <p>Протокол не перегружает канал шифрованием. Вы получите почти полную скорость своего интернета.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">👁</div>
+      <h3>Нулевые логи</h3>
+      <p>Мы не храним историю подключений и DNS-запросы. Только статистика по трафику для работы подписки.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">🌍</div>
+      <h3>США и Германия</h3>
+      <p>Высокоскоростные серверы для доступа к сервисам, которые ограничены в России. Без рекламы и замедления.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">📱</div>
+      <h3>Все устройства</h3>
+      <p>iOS, Android, Windows, macOS, Linux. Одна подписка — до 5 устройств одновременно.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">💬</div>
+      <h3>Живая поддержка</h3>
+      <p>Telegram-бот и чат поддержки. Отвечаем в течение часа в рабочее время.</p>
+    </div>
+  </div>
+</section>
+
+<section id="servers">
+  <h2 class="section-title">Наши серверы</h2>
+  <p class="section-sub">Мы расширяемся. Новые локации появятся в ближайшее время.</p>
+
+  <div class="servers-wrap">
+    <!-- Сервер США (Онлайн) -->
+    <div class="server">
+      <span class="server-name">🇺🇸 США · Нью-Йорк</span>
+      <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
+    </div>
+    
+    <!-- Сервер Германия (ТЕПЕРЬ ОНЛАЙН) -->
+    <div class="server">
+      <span class="server-name">🇩🇪 Германия · Франкфурт</span>
+      <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
+    </div>
+
+    <!-- Будущие серверы (скоро) -->
+    <div class="server soon">
+      <span class="server-name">🇳🇱 Нидерланды</span>
+      <span class="server-ping"><span class="ping-dot"></span>скоро</span>
+    </div>
+    <div class="server soon">
+      <span class="server-name">🇫🇮 Финляндия</span>
+      <span class="server-ping"><span class="ping-dot"></span>скоро</span>
+    </div>
+  </div>
+</section>
+
+<section id="pricing">
+  <h2 class="section-title">Простые тарифы</h2>
+  <p class="section-sub">Одна подписка — все возможности. Без скрытых платежей.</p>
+
+  <div class="pricing">
+    <div class="plan">
+      <div class="plan-name">Месяц</div>
+      <div class="plan-price">299₽</div>
+      <div class="plan-period">в месяц</div>
+      <ul class="plan-features">
+        <li>Доступ ко всем серверам</li>
+        <li>5 устройств</li>
+        <li>Безлимитный трафик</li>
+        <li>Поддержка в Telegram</li>
+      </ul>
+      <button class="btn btn-secondary" onclick="selectPlan('Месяц', 299)">Выбрать</button>
+    </div>
+
+    <div class="plan featured">
+      <div class="plan-name">Год</div>
+      <div class="plan-price">149₽<span>/мес</span></div>
+      <div class="plan-period">1 790₽ в год · экономия 50%</div>
+      <ul class="plan-features">
+        <li>Всё из тарифа «Месяц»</li>
+        <li>Приоритетная поддержка</li>
+        <li>Ранний доступ к новым серверам</li>
+        <li>7 дней гарантии возврата</li>
+      </ul>
+      <button class="btn btn-primary" onclick="selectPlan('Год', 1790)">Выбрать план</button>
+    </div>
+
+    <div class="plan">
+      <div class="plan-name">3 месяца</div>
+      <div class="plan-price">199₽<span>/мес</span></div>
+      <div class="plan-period">597₽ · выгоднее на 33%</div>
+      <ul class="plan-features">
+        <li>Всё из тарифа «Месяц»</li>
+        <li>5 устройств</li>
+        <li>Поддержка в Telegram</li>
+      </ul>
+      <button class="btn btn-secondary" onclick="selectPlan('3 месяца', 597)">Выбрать</button>
+    </div>
+  </div>
+</section>
+
+<section id="apps">
+  <h2 class="section-title">Клиенты для подключения</h2>
+  <p class="section-sub">Скачайте приложение для вашего устройства. После оплаты вы получите ссылку для импорта.</p>
+
+  <div class="apps">
+    <a href="https://github.com/hiddify/hiddify-app/releases" class="app" target="_blank" rel="noopener">
+      <div class="app-name">Hiddify</div>
+      <div class="app-desc">Android, iOS, Windows, macOS, Linux</div>
+    </a>
+    <a href="https://github.com/2dust/v2rayNG/releases" class="app" target="_blank" rel="noopener">
+      <div class="app-name">v2rayNG</div>
+      <div class="app-desc">Android</div>
+    </a>
+    <a href="https://apps.apple.com/app/streisand/id6450534064" class="app" target="_blank" rel="noopener">
+      <div class="app-name">Streisand</div>
+      <div class="app-desc">iOS, macOS</div>
+    </a>
+    <a href="https://github.com/MatsuriDayo/NekoBoxForAndroid/releases" class="app" target="_blank" rel="noopener">
+      <div class="app-name">NekoBox</div>
+      <div class="app-desc">Android (для продвинутых)</div>
+    </a>
+  </div>
+</section>
+
+<section id="faq">
+  <h2 class="section-title">Частые вопросы</h2>
+  <p class="section-sub">Не нашёл ответ? Пиши в Telegram — отвечаем быстро.</p>
+
+  <div class="faq">
+    <div class="faq-item">
+      <div class="faq-q">Вы храните логи моей активности?</div>
+      <div class="faq-a">Мы не ведём логи посещений сайтов и DNS-запросов. Хранится только техническая информация, необходимая для работы подписки: объём трафика и дата последнего подключения.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Какой протокол используется?</div>
+      <div class="faq-a">VLESS с транспортом Reality. Это современный протокол, который маскирует трафик под обычное HTTPS-соединение. Его значительно сложнее обнаружить и заблокировать, чем OpenVPN или WireGuard.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">На скольких устройствах можно использовать?</div>
+      <div class="faq-a">До 5 устройств одновременно на одной подписке. Поддерживаются iOS, Android, Windows, macOS и Linux.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Можно вернуть деньги?</div>
+      <div class="faq-a">Да. В течение 7 дней после покупки — если сервис вам не подошёл, вернём полную стоимость без лишних вопросов.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Работает ли VPN в России?</div>
+      <div class="faq-a">Да. Благодаря протоколу Reality и маскировке под HTTPS, соединение работает даже при активных блокировках VPN-протоколов. Если у вас не заработает на каком-то операторе — напишите в поддержку, поможем с настройкой.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q">Как оплатить?</div>
+      <div class="faq-a">Оплата принимается через Telegram-бота: банковские карты, СБП, ЮMoney и криптовалюта. После оплаты вы сразу получите ссылку для подключения.</div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="footer-logo">
+    <img src="logo.png" alt="parallelogram.vpn">
+  </div>
+  <div class="footer-links">
+    <a href="terms.html">Пользовательское соглашение</a>
+    <a href="privacy.html">Политика конфиденциальности</a>
+    <a href="terms.html#refund">Возврат средств</a>
+    <a href="https://t.me/your_support" target="_blank" rel="noopener">Поддержка</a>
+  </div>
+  <p>© 2025 parallelogram.vpn. Свобода без границ.</p>
+</footer>
+
+<!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-modal" onclick="event.stopPropagation()">
+    <button class="auth-close" onclick="closeAuth()" aria-label="Закрыть">✕</button>
+    <div class="auth-title" id="authTitle">Создать аккаунт</div>
+    <div class="auth-sub" id="authSub">Зарегистрируйтесь, чтобы получить доступ</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabLogin" onclick="switchTab('login')">Вход</button>
+      <button class="auth-tab" id="tabRegister" onclick="switchTab('register')">Регистрация</button>
+    </div>
+
+    <form id="authForm" onsubmit="handleAuth(event)">
+      <div class="auth-field">
+        <label class="auth-label" for="authEmail">Email</label>
+        <input type="email" id="authEmail" class="auth-input" placeholder="you@example.com" autocomplete="email" required>
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="authPassword">Пароль</label>
+        <input type="password" id="authPassword" class="auth-input" placeholder="Минимум 6 символов" autocomplete="current-password" required>
+      </div>
+      <div class="auth-field" id="authConfirmField" style="display:none;">
+        <label class="auth-label" for="authConfirm">Повторите пароль</label>
+        <input type="password" id="authConfirm" class="auth-input" placeholder="Ещё раз" autocomplete="new-password">
+      </div>
+
+      <span class="auth-error" id="authError"></span>
+      <button type="submit" class="auth-submit" id="authSubmit">Войти</button>
+    </form>
+
+    <div class="auth-divider">или</div>
+
+    <button class="auth-google" onclick="handleGoogleAuth()">
+      <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
+        <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>
+        <path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/>
+        <path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/>
+      </svg>
+      Войти через Google
+    </button>
+
+    <div class="auth-agree">
+      Продолжая, вы соглашаетесь с <a href="terms.html" target="_blank">Условиями</a> и <a href="privacy.html" target="_blank">Политикой конфиденциальности</a>.
+    </div>
+  </div>
+</div>
+
+<!-- МОДАЛКА ПОКАЗА ПРОБНОГО КЛЮЧА -->
+<div id="trialKeyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center; padding: 20px;">
+  <div style="background:#0d0d12; border:1px solid rgba(255,255,255,0.1); padding:40px 32px; border-radius:24px; max-width:480px; width:100%; text-align:center; position:relative;">
+    <button onclick="closeTrialModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#aaa; font-size:24px; cursor:pointer;">✕</button>
+    <h2 style="color:#fff; margin-bottom:10px; font-size: 24px;">Ваш пробный доступ готов!</h2>
+    <p style="color:#aaa; margin-bottom:20px; font-size:14px;">Скопируйте ссылку и добавьте её в приложение (Happ, v2rayNG).</p>
+    
+    <textarea id="trialKeyInput" readonly style="width:100%; height:100px; padding:15px; background:#050507; color:#fff; border:1px solid #333; border-radius:12px; resize:none; font-size:13px; margin-bottom:20px; font-family:monospace;"></textarea>
+    
+    <button onclick="copyTrialKey()" class="btn btn-primary" style="width:100%; justify-content:center;">
+      Скопировать ключ
+    </button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ПОДКЛЮЧАЕМ FIREBASE И ЛОГИКУ -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+  // Твой конфиг Firebase
+  const firebaseConfig = {
+    apiKey: "AIzaSyCmbFhUIhiQxiW2pna4J_Z_GnOHWLz0Ty8",
+    authDomain: "privet-cd1da.firebaseapp.com",
+    projectId: "privet-cd1da",
+    storageBucket: "privet-cd1da.firebasestorage.app",
+    messagingSenderId: "392389196904",
+    appId: "1:392389196904:web:dd7a143d381d939e92cfdd",
+    measurementId: "G-KK7H0FGGVV"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+
+  // ⚠️ ЗАМЕНИ НА URL ТВОЕГО CLOUDFLARE WORKER
+  const WORKER_URL = "https://vpn-trial-api.твой-ник.workers.dev";
+
+  // --- НАВИГАЦИЯ ---
+  window.scrollToSection = function(id) {
+    if (id === 'top') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+    const el = document.getElementById(id);
+    if (!el) return;
+    const navHeight = document.querySelector('nav').offsetHeight;
+    const top = el.getBoundingClientRect().top + window.pageYOffset - navHeight + 10;
+    window.scrollTo({ top, behavior: 'smooth' });
+  };
+
+  // --- АВТОРИЗАЦИЯ ---
+  let currentMode = 'login';
+  let currentUser = null;
+
+  window.openAuth = function(mode = 'login') {
+    switchTab(mode);
+    document.getElementById('authOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  window.closeAuth = function() {
+    document.getElementById('authOverlay').classList.remove('active');
+    document.body.style.overflow = '';
+    document.getElementById('authError').textContent = '';
+    document.getElementById('authForm').reset();
+    clearFieldErrors();
+  }
+
+  window.switchTab = function(mode) {
+    currentMode = mode;
+    const tabLogin = document.getElementById('tabLogin');
+    const tabRegister = document.getElementById('tabRegister');
+    const title = document.getElementById('authTitle');
+    const sub = document.getElementById('authSub');
+    const submit = document.getElementById('authSubmit');
+    const confirmField = document.getElementById('authConfirmField');
+
+    document.getElementById('authError').textContent = '';
+    clearFieldErrors();
+
+    if (mode === 'login') {
+      tabLogin.classList.add('active');
+      tabRegister.classList.remove('active');
+      title.textContent = 'Вход в аккаунт';
+      sub.textContent = 'Рады видеть вас снова';
+      submit.textContent = 'Войти';
+      confirmField.style.display = 'none';
+    } else {
+      tabLogin.classList.remove('active');
+      tabRegister.classList.add('active');
+      title.textContent = 'Создать аккаунт';
+      sub.textContent = 'Зарегистрируйтесь, чтобы получить доступ';
+      submit.textContent = 'Зарегистрироваться';
+      confirmField.style.display = 'block';
+    }
+  }
+
+  function clearFieldErrors() {
+    ['authEmail', 'authPassword', 'authConfirm'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('error');
+    });
+  }
+
+  window.handleAuth = async function(event) {
+    event.preventDefault();
+    clearFieldErrors();
+
+    const email = document.getElementById('authEmail').value.trim();
+    const password = document.getElementById('authPassword').value;
+    const confirm = document.getElementById('authConfirm').value;
+    const errorEl = document.getElementById('authError');
+    const submitBtn = document.getElementById('authSubmit');
+
+    errorEl.textContent = '';
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errorEl.textContent = 'Введите корректный email';
+      return;
+    }
+    if (password.length < 6) {
+      errorEl.textContent = 'Пароль должен быть не менее 6 символов';
+      return;
+    }
+    if (currentMode === 'register' && password !== confirm) {
+      errorEl.textContent = 'Пароли не совпадают';
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Подождите...';
+
+    try {
+      if (currentMode === 'register') {
+        await createUserWithEmailAndPassword(auth, email, password);
+        showToast('Аккаунт создан! Добро пожаловать 🎉');
+      } else {
+        await signInWithEmailAndPassword(auth, email, password);
+        showToast('Вы вошли в аккаунт');
+      }
+      closeAuth();
+    } catch (error) {
+      console.error(error);
+      if (error.code === 'auth/email-already-in-use') {
+        errorEl.textContent = 'Этот email уже зарегистрирован';
+      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
+        errorEl.textContent = 'Неверный email или пароль';
+      } else {
+        errorEl.textContent = 'Ошибка: ' + error.message;
+      }
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = currentMode === 'login' ? 'Войти' : 'Зарегистрироваться';
+    }
+  }
+
+  window.logout = async function() {
+    await signOut(auth);
+    showToast('Вы вышли из аккаунта');
+  }
+
+  onAuthStateChanged(auth, (user) => {
+    currentUser = user;
+    const navCta = document.getElementById('navCtaBtn');
+    const navUser = document.getElementById('navUser');
+    const navUserEmail = document.getElementById('navUserEmail');
+
+    if (user) {
+      navCta.style.display = 'none';
+      navUser.classList.add('active');
+      navUserEmail.textContent = user.email;
+    } else {
+      navCta.style.display = 'inline-block';
+      navUser.classList.remove('active');
+    }
+  });
+
+  window.handleGoogleAuth = function() {
+    showToast('Вход через Google пока недоступен', true);
+  }
+
+  window.selectPlan = function(planName, price) {
+    if (!currentUser) {
+      showToast('Сначала войдите в аккаунт', true);
+      openAuth('register');
+      return;
+    }
+    // Здесь можно вставить редирект в вашего Telegram-бота:
+    // window.open('https://t.me/your_bot_here?start=' + planName, '_blank');
+    showToast(`Тариф «${planName}» выбран · ${price}₽`);
+  }
+
+  // --- ПОЛУЧЕНИЕ ПРОБНИКА ---
+  window.getTrial = async function() {
+    if (!currentUser) {
+      showToast('Сначала войдите в аккаунт', true);
+      openAuth('register');
+      return;
+    }
+
+    const btn = document.getElementById('trialBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = 'Генерируем...';
+    btn.disabled = true;
+
+    try {
+      const response = await fetch(WORKER_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: currentUser.email,
+          uid: currentUser.uid
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        document.getElementById('trialKeyModal').style.display = 'flex';
+        document.getElementById('trialKeyInput').value = data.link;
+      } else {
+        showToast(data.error || 'Ошибка сервера', true);
+      }
+    } catch (err) {
+      showToast('Сетевая ошибка. Попробуйте позже.', true);
+    } finally {
+      btn.innerHTML = originalText;
+      btn.disabled = false;
+    }
+  }
+
+  window.copyTrialKey = function() {
+    const input = document.getElementById('trialKeyInput');
+    input.select();
+    document.execCommand('copy');
+    showToast('Ключ скопирован! Вставьте его в Happ или v2rayNG');
+  }
+
+  window.closeTrialModal = function() {
+    document.getElementById('trialKeyModal').style.display = 'none';
+  }
+
+  // --- УТИЛИТЫ ---
+  let toastTimer;
+  window.showToast = function(message, isError = false) {
+    const toast = document.getElementById('toast');
+    toast.textContent = message;
+    toast.classList.toggle('error', isError);
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove('show'), 3000);
+  }
+
+  document.querySelectorAll('.faq-item').forEach(item => {
+    item.addEventListener('click', () => item.classList.toggle('open'));
+  });
+  document.getElementById('authOverlay').addEventListener('click', (e) => {
+    if (e.target.id === 'authOverlay') closeAuth();
+  });
+</script>
+
+</body>
+</html>
