@@ -1,3 +1,41 @@
-name = "vpn-trial-api"
+# ВАЖНО: имя должно совпадать с уже задеплоенным воркером.
+# Ваш URL — vpn.yafomin11.workers.dev, значит воркер называется "vpn".
+# Раньше здесь было "vpn-trial-api": деплой создал бы НОВЫЙ воркер с другим адресом.
+name = "vpn"
 main = "worker.js"
-compatibility_date = "2024-01-01"
+compatibility_date = "2025-09-01"
+
+[observability]
+enabled = true
+
+[vars]
+FIREBASE_PROJECT_ID = "privet-cd1da"
+INBOUND_ID = "ib_91e7f61456"
+
+# Адрес API панели. Сейчас http:// — токен идёт по сети открыто!
+# Как только панель получит HTTPS (Cloudflare Tunnel / nginx + сертификат):
+#   1) поменяйте адрес на https://...
+#   2) удалите строку ALLOW_INSECURE_API
+API_BASE = "http://us2.h1cloud.net:25686/api"
+ALLOW_INSECURE_API = "true"
+
+# Какие сайты могут вызывать воркер (через запятую, без слэша на конце).
+# ЗАМЕНИТЕ на свой реальный домен (и добавьте *.pages.dev, если сайт там).
+ALLOWED_ORIGINS = "https://parallelogram.vpn,https://www.parallelogram.vpn"
+
+# Параметры пробного периода и лимиты
+TRIAL_DAYS = "1"
+TRIAL_TRAFFIC_GB = "5"
+TRIAL_DEVICES = "2"
+MAX_TRIALS_PER_IP_DAY = "3"
+
+# Лимиты по IP/email: создайте KV и раскомментируйте
+#   npx wrangler kv namespace create RATE_KV
+# [[kv_namespaces]]
+# binding = "RATE_KV"
+# id = "<id из команды выше>"
+
+# Секреты (не хранить в файле!):
+#   npx wrangler secret put API_TOKEN
+#   npx wrangler secret put TURNSTILE_SECRET   # необязательно
+#   npx wrangler secret put IP_SALT            # необязательно, любая случайная строка

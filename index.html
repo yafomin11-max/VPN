@@ -4,6 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>parallelogram.vpn — Свобода без границ</title>
+<meta name="description" content="VPN на VLESS + Reality: маскировка под обычный HTTPS, серверы в США и Германии, без логов активности. 1 день бесплатно, затем от 149 ₽/мес.">
+<meta name="theme-color" content="#050507">
+<link rel="canonical" href="https://parallelogram.vpn/">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="parallelogram.vpn">
+<meta property="og:locale" content="ru_RU">
+<meta property="og:title" content="parallelogram.vpn — Свобода без границ">
+<meta property="og:description" content="VLESS + Reality, серверы в США и Германии, без логов активности. 1 день бесплатно.">
+<meta property="og:url" content="https://parallelogram.vpn/">
+<meta property="og:image" content="https://parallelogram.vpn/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   
@@ -78,6 +95,7 @@
   .logo-img {
     height: 34px;
     width: auto;
+    max-width: none;
     display: block;
   }
 
@@ -528,7 +546,7 @@
     justify-content: center;
     margin-bottom: 24px;
   }
-  .footer-logo img { height: 28px; }
+  .footer-logo img { height: 28px; width: auto; max-width: 100%; }
   .footer-links {
     display: flex;
     justify-content: center;
@@ -761,6 +779,60 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); }
   .toast.error { background: var(--error); color: #fff; }
+
+  /* инструкция */
+  .steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; counter-reset: step; max-width: 1100px; margin: 0 auto; }
+  .step {
+    position: relative; padding: 32px 28px; border: 1px solid var(--border); border-radius: 20px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.025), rgba(255,255,255,0.005));
+  }
+  .step-num {
+    width: 36px; height: 36px; border-radius: 50%; margin-bottom: 18px;
+    display: flex; align-items: center; justify-content: center;
+    background: #fff; color: #000; font-weight: 800; font-size: 15px;
+  }
+  .step h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; color: #fff; }
+  .step p { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+  .step a { color: #fff; text-underline-offset: 3px; }
+  .guide-notes { max-width: 1100px; margin: 24px auto 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+  .guide-note { padding: 20px 24px; border: 1px solid var(--border); border-radius: 16px; background: rgba(255,255,255,0.02); font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+  .guide-note strong { color: #fff; display: block; margin-bottom: 6px; font-size: 14px; }
+  .footer-support {
+    display: inline-flex; align-items: center; gap: 8px; margin-bottom: 28px;
+    padding: 12px 24px; border-radius: 12px; background: #fff; color: #000;
+    font-weight: 600; font-size: 14px; text-decoration: none; transition: all 0.3s;
+  }
+  .footer-support:hover { box-shadow: 0 0 30px rgba(255,255,255,0.5); transform: translateY(-2px); }
+
+  /* a11y: видимый фокус и reduced motion */
+  button:focus-visible, a:focus-visible, .faq-q:focus-visible, .auth-input:focus-visible {
+    outline: 2px solid #fff; outline-offset: 3px; border-radius: 6px;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
+
+  /* плашка «подтвердите email» */
+  .verify-bar {
+    display: none;
+    position: fixed; top: 72px; left: 0; right: 0; z-index: 99;
+    padding: 10px 20px;
+    background: rgba(250, 204, 21, 0.12);
+    border-bottom: 1px solid rgba(250, 204, 21, 0.35);
+    backdrop-filter: blur(12px);
+    color: #fde68a; font-size: 13px;
+    align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; text-align: center;
+  }
+  .verify-bar.active { display: flex; }
+  .verify-bar button {
+    background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2);
+    color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; font-family: inherit;
+  }
+  .verify-bar button:hover { background: rgba(255,255,255,0.16); }
+  .verify-bar button:disabled { opacity: 0.5; cursor: default; }
+  @media (max-width: 768px) { .verify-bar { top: 64px; } }
+  #turnstileBox { display: flex; justify-content: center; margin-top: -48px; margin-bottom: 48px; }
+  #turnstileBox:empty { display: none; }
 </style>
 </head>
 <body>
@@ -771,12 +843,13 @@
 
 <nav>
   <button class="logo" onclick="scrollToSection('top')" aria-label="На главную">
-    <img src="logo.png" alt="parallelogram.vpn" class="logo-img">
+    <img src="logo.png" alt="parallelogram.vpn" class="logo-img" width="512" height="143">
   </button>
   <ul class="nav-links">
     <li><button onclick="scrollToSection('features')">Возможности</button></li>
     <li><button onclick="scrollToSection('servers')">Серверы</button></li>
     <li><button onclick="scrollToSection('pricing')">Тарифы</button></li>
+    <li><button onclick="scrollToSection('guide')">Инструкция</button></li>
     <li><button onclick="scrollToSection('apps')">Клиенты</button></li>
     <li><button onclick="scrollToSection('faq')">FAQ</button></li>
   </ul>
@@ -786,6 +859,12 @@
     <button class="nav-logout" onclick="logout()">Выйти</button>
   </div>
 </nav>
+
+<div class="verify-bar" id="verifyBar" role="status">
+  <span>Подтвердите email — мы отправили письмо со ссылкой. Без этого пробный период недоступен.</span>
+  <button id="verifyRecheck" type="button" onclick="recheckVerified()">Я подтвердил(а)</button>
+  <button id="verifyResend" type="button" onclick="resendVerification()">Отправить ещё раз</button>
+</div>
 
 <section class="hero" id="top">
   <div class="badge">
@@ -807,22 +886,23 @@
       Как это работает
     </button>
   </div>
+  <div id="turnstileBox"></div>
   <div class="stats">
     <div class="stat">
       <div class="stat-value">0</div>
-      <div class="stat-label">Логов</div>
+      <div class="stat-label">Логов активности</div>
     </div>
     <div class="stat">
       <div class="stat-value">2</div>
       <div class="stat-label">Сервера</div>
     </div>
     <div class="stat">
-      <div class="stat-value">99%</div>
-      <div class="stat-label">Uptime</div>
+      <div class="stat-value">5</div>
+      <div class="stat-label">Устройств</div>
     </div>
     <div class="stat">
-      <div class="stat-value">24/7</div>
-      <div class="stat-label">Поддержка</div>
+      <div class="stat-value">≤1 ч</div>
+      <div class="stat-label">Ответ поддержки</div>
     </div>
   </div>
 </section>
@@ -844,8 +924,8 @@
     </div>
     <div class="feature">
       <div class="feature-icon">👁</div>
-      <h3>Нулевые логи</h3>
-      <p>Мы не храним историю подключений и DNS-запросы. Только статистика по трафику для работы подписки.</p>
+      <h3>Без логов активности</h3>
+      <p>Мы не храним историю сайтов и DNS-запросы. Только объём трафика и дата последнего подключения — это нужно для работы подписки.</p>
     </div>
     <div class="feature">
       <div class="feature-icon">🌍</div>
@@ -903,6 +983,7 @@
         <li>5 устройств</li>
         <li>Безлимитный трафик</li>
         <li>Поддержка в Telegram</li>
+        <li>7 дней гарантии возврата</li>
       </ul>
       <button class="btn btn-secondary" onclick="selectPlan('Месяц', 299)">Выбрать</button>
     </div>
@@ -928,9 +1009,44 @@
         <li>Всё из тарифа «Месяц»</li>
         <li>5 устройств</li>
         <li>Поддержка в Telegram</li>
+        <li>7 дней гарантии возврата</li>
       </ul>
       <button class="btn btn-secondary" onclick="selectPlan('3 месяца', 597)">Выбрать</button>
     </div>
+  </div>
+</section>
+
+<section id="guide">
+  <h2 class="section-title">Как подключиться</h2>
+  <p class="section-sub">Четыре шага — и вы в сети. Займёт около пяти минут.</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h3>Получите ключ</h3>
+      <p>Войдите в аккаунт, подтвердите email и нажмите «Получить 1 день бесплатно». Или оплатите тариф в <a href="https://t.me/VPN_PARALLELOGRAM_bot" target="_blank" rel="noopener">Telegram-боте</a> — ссылку подписки бот пришлёт после оплаты.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h3>Скопируйте ссылку</h3>
+      <p>Нажмите «Скопировать ключ». Это ссылка-подписка — она содержит все серверы сразу. Никому её не передавайте.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h3>Установите приложение</h3>
+      <p>Для большинства устройств подойдёт <strong>Hiddify</strong>. На iPhone — Hiddify или Streisand, на Android — Hiddify или v2rayNG. Ссылки ниже, в разделе «Клиенты».</p>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <h3>Добавьте подписку и включите</h3>
+      <p>Откройте приложение → «Новый профиль» (или «+») → «Добавить из буфера обмена». Выберите сервер и нажмите кнопку подключения.</p>
+    </div>
+  </div>
+
+  <div class="guide-notes">
+    <div class="guide-note"><strong>Не подключается?</strong>Обновите подписку в приложении, попробуйте другой сервер (США или Германия) и другую сеть: Wi-Fi или мобильный интернет. Если не помогло — напишите в <a href="https://t.me/O_rbis" target="_blank" rel="noopener" style="color:#fff">поддержку</a>.</div>
+    <div class="guide-note"><strong>v2rayNG (Android)</strong>Меню → «Группы подписок» → добавьте ссылку → в главном окне обновите подписку и выберите сервер.</div>
+    <div class="guide-note"><strong>Лимиты</strong>Пробный период: 1 день, 5 ГБ, 2 устройства. Платная подписка: до 5 устройств одновременно.</div>
   </div>
 </section>
 
@@ -968,6 +1084,10 @@
       <div class="faq-a">Мы не ведём логи посещений сайтов и DNS-запросов. Хранится только техническая информация, необходимая для работы подписки: объём трафика и дата последнего подключения.</div>
     </div>
     <div class="faq-item">
+      <div class="faq-q">Что входит в бесплатный пробный период?</div>
+      <div class="faq-a">1 день, до 5 ГБ трафика и до 2 устройств. Нужен аккаунт с подтверждённым email. Пробный период выдаётся один раз на человека.</div>
+    </div>
+    <div class="faq-item">
       <div class="faq-q">Какой протокол используется?</div>
       <div class="faq-a">VLESS с транспортом Reality. Это современный протокол, который маскирует трафик под обычное HTTPS-соединение. Его значительно сложнее обнаружить и заблокировать, чем OpenVPN или WireGuard.</div>
     </div>
@@ -977,7 +1097,7 @@
     </div>
     <div class="faq-item">
       <div class="faq-q">Можно вернуть деньги?</div>
-      <div class="faq-a">Да. В течение 7 дней после покупки — если сервис вам не подошёл, вернём полную стоимость без лишних вопросов.</div>
+      <div class="faq-a">Да. В течение 7 дней после оплаты, если вы использовали не более 10 ГБ трафика, мы вернём деньги. Подробности — в <a href="terms.html#refund">условиях возврата</a>.</div>
     </div>
     <div class="faq-item">
       <div class="faq-q">Работает ли VPN в России?</div>
@@ -992,19 +1112,20 @@
 
 <footer>
   <div class="footer-logo">
-    <img src="logo.png" alt="parallelogram.vpn">
+    <img src="logo.png" alt="parallelogram.vpn" width="512" height="143" loading="lazy">
   </div>
+  <a class="footer-support" href="https://t.me/O_rbis" target="_blank" rel="noopener">💬 Написать в поддержку</a>
   <div class="footer-links">
     <a href="terms.html">Пользовательское соглашение</a>
     <a href="privacy.html">Политика конфиденциальности</a>
     <a href="terms.html#refund">Возврат средств</a>
-    <a href="https://t.me/your_support" target="_blank" rel="noopener">Поддержка</a>
+    <a href="https://t.me/O_rbis" target="_blank" rel="noopener">Поддержка (@O_rbis)</a>
   </div>
-  <p>© 2025 parallelogram.vpn. Свобода без границ.</p>
+  <p>© 2026 parallelogram.vpn. Свобода без границ.</p>
 </footer>
 
 <!-- МОДАЛЬНОЕ ОКНО АВТОРИЗАЦИИ -->
-<div class="auth-overlay" id="authOverlay">
+<div class="auth-overlay" id="authOverlay" role="dialog" aria-modal="true" aria-labelledby="authTitle">
   <div class="auth-modal" onclick="event.stopPropagation()">
     <button class="auth-close" onclick="closeAuth()" aria-label="Закрыть">✕</button>
     <div class="auth-title" id="authTitle">Создать аккаунт</div>
@@ -1052,13 +1173,13 @@
 </div>
 
 <!-- МОДАЛКА ПОКАЗА ПРОБНОГО КЛЮЧА -->
-<div id="trialKeyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center; padding: 20px;">
+<div id="trialKeyModal" role="dialog" aria-modal="true" aria-labelledby="trialTitle" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(5px); z-index:9999; align-items:center; justify-content:center; padding: 20px;">
   <div style="background:#0d0d12; border:1px solid rgba(255,255,255,0.1); padding:40px 32px; border-radius:24px; max-width:480px; width:100%; text-align:center; position:relative;">
-    <button onclick="closeTrialModal()" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#aaa; font-size:24px; cursor:pointer;">✕</button>
-    <h2 style="color:#fff; margin-bottom:10px; font-size: 24px;">Ваш пробный доступ готов!</h2>
+    <button onclick="closeTrialModal()" aria-label="Закрыть" style="position:absolute; top:15px; right:15px; background:none; border:none; color:#aaa; font-size:24px; cursor:pointer;">✕</button>
+    <h2 id="trialTitle" style="color:#fff; margin-bottom:10px; font-size: 24px;">Ваш пробный доступ готов!</h2>
     <p style="color:#aaa; margin-bottom:20px; font-size:14px;">Скопируйте ссылку и добавьте её в приложение (Happ, v2rayNG).</p>
     
-    <textarea id="trialKeyInput" readonly style="width:100%; height:100px; padding:15px; background:#050507; color:#fff; border:1px solid #333; border-radius:12px; resize:none; font-size:13px; margin-bottom:20px; font-family:monospace;"></textarea>
+    <textarea id="trialKeyInput" readonly aria-label="Ссылка подписки" style="width:100%; height:100px; padding:15px; background:#050507; color:#fff; border:1px solid #333; border-radius:12px; resize:none; font-size:13px; margin-bottom:20px; font-family:monospace;"></textarea>
     
     <button onclick="copyTrialKey()" class="btn btn-primary" style="width:100%; justify-content:center;">
       Скопировать ключ
@@ -1066,12 +1187,12 @@
   </div>
 </div>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <!-- ПОДКЛЮЧАЕМ FIREBASE И ЛОГИКУ -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+  import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, sendEmailVerification, reload } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyCmbFhUIhiQxiW2pna4J_Z_GnOHWLz0Ty8",
@@ -1087,6 +1208,27 @@
   const auth = getAuth(app);
 
   const WORKER_URL = "https://vpn.yafomin11.workers.dev";
+
+  // Cloudflare Turnstile: вставьте Site Key (и задайте секрет в воркере), чтобы включить капчу.
+  // Пустая строка — капча выключена.
+  const TURNSTILE_SITE_KEY = "";
+
+  // Понятные сообщения вместо сырых ошибок Firebase
+  function authErrorText(error) {
+    switch (error && error.code) {
+      case 'auth/email-already-in-use': return 'Этот email уже зарегистрирован. Войдите в аккаунт';
+      case 'auth/invalid-credential':
+      case 'auth/wrong-password':
+      case 'auth/user-not-found': return 'Неверный email или пароль';
+      case 'auth/invalid-email': return 'Введите корректный email';
+      case 'auth/weak-password': return 'Слишком простой пароль. Минимум 6 символов';
+      case 'auth/too-many-requests': return 'Слишком много попыток. Подождите немного и попробуйте снова';
+      case 'auth/network-request-failed': return 'Нет соединения с сетью. Проверьте интернет';
+      case 'auth/popup-blocked': return 'Браузер заблокировал окно входа. Разрешите всплывающие окна';
+      case 'auth/account-exists-with-different-credential': return 'Этот email уже зарегистрирован другим способом';
+      default: return 'Не удалось выполнить вход. Попробуйте позже';
+    }
+  }
 
   window.scrollToSection = function(id) {
     if (id === 'top') {
@@ -1136,6 +1278,7 @@
       sub.textContent = 'Рады видеть вас снова';
       submit.textContent = 'Войти';
       confirmField.style.display = 'none';
+      document.getElementById('authPassword').autocomplete = 'current-password';
     } else {
       tabLogin.classList.remove('active');
       tabRegister.classList.add('active');
@@ -1143,6 +1286,7 @@
       sub.textContent = 'Зарегистрируйтесь, чтобы получить доступ';
       submit.textContent = 'Зарегистрироваться';
       confirmField.style.display = 'block';
+      document.getElementById('authPassword').autocomplete = 'new-password';
     }
   }
 
@@ -1183,8 +1327,9 @@
 
     try {
       if (currentMode === 'register') {
-        await createUserWithEmailAndPassword(auth, email, password);
-        showToast('Аккаунт создан! Добро пожаловать 🎉');
+        const cred = await createUserWithEmailAndPassword(auth, email, password);
+        try { await sendEmailVerification(cred.user); } catch (e) { console.warn('verify mail failed', e); }
+        showToast('Аккаунт создан! Проверьте почту и подтвердите email 📩');
       } else {
         await signInWithEmailAndPassword(auth, email, password);
         showToast('Вы вошли в аккаунт');
@@ -1192,13 +1337,7 @@
       closeAuth();
     } catch (error) {
       console.error(error);
-      if (error.code === 'auth/email-already-in-use') {
-        errorEl.textContent = 'Этот email уже зарегистрирован';
-      } else if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found') {
-        errorEl.textContent = 'Неверный email или пароль';
-      } else {
-        errorEl.textContent = 'Ошибка: ' + error.message;
-      }
+      errorEl.textContent = authErrorText(error);
     } finally {
       submitBtn.disabled = false;
       submitBtn.textContent = currentMode === 'login' ? 'Войти' : 'Зарегистрироваться';
@@ -1224,7 +1363,41 @@
       navCta.style.display = 'inline-block';
       navUser.classList.remove('active');
     }
+    updateVerifyBar();
   });
+
+  function updateVerifyBar() {
+    const u = auth.currentUser;
+    document.getElementById('verifyBar').classList.toggle('active', !!(u && !u.emailVerified));
+  }
+
+  window.recheckVerified = async function() {
+    const u = auth.currentUser;
+    if (!u) return;
+    try {
+      await reload(u);
+      updateVerifyBar();
+      if (u.emailVerified) showToast('Email подтверждён ✅');
+      else showToast('Email ещё не подтверждён. Проверьте почту (и папку «Спам»)', true);
+    } catch (e) {
+      showToast('Не удалось проверить. Попробуйте позже', true);
+    }
+  }
+
+  let resendCooldown = false;
+  window.resendVerification = async function() {
+    const u = auth.currentUser;
+    if (!u || resendCooldown) return;
+    const btn = document.getElementById('verifyResend');
+    resendCooldown = true; btn.disabled = true;
+    try {
+      await sendEmailVerification(u);
+      showToast('Письмо отправлено повторно');
+    } catch (e) {
+      showToast(e.code === 'auth/too-many-requests' ? 'Слишком часто. Подождите минуту' : 'Не удалось отправить письмо', true);
+    }
+    setTimeout(() => { resendCooldown = false; btn.disabled = false; }, 60000);
+  }
 
   window.handleGoogleAuth = async function() {
    const provider = new GoogleAuthProvider();
@@ -1234,10 +1407,10 @@
      closeAuth();
    } catch (error) {
      console.error(error);
-     if (error.code === 'auth/popup-closed-by-user') {
-       // Ничего не делаем
+     if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
+       // Пользователь закрыл окно — ничего не делаем
      } else {
-       showToast('Ошибка входа: ' + error.message, true);
+       showToast(authErrorText(error), true);
      }
    }
  }
@@ -1254,6 +1427,30 @@
     showToast(`Переходим в Telegram для оплаты...`);
   }
 
+  function getTurnstileToken() {
+    if (!TURNSTILE_SITE_KEY) return Promise.resolve(null);
+    return new Promise((resolve, reject) => {
+      const mount = () => {
+        const box = document.getElementById('turnstileBox');
+        box.innerHTML = '';
+        const timer = setTimeout(() => reject(new Error('Проверка не завершилась. Обновите страницу')), 45000);
+        window.turnstile.render(box, {
+          sitekey: TURNSTILE_SITE_KEY,
+          appearance: 'interaction-only',
+          callback: (t) => { clearTimeout(timer); resolve(t); },
+          'error-callback': () => { clearTimeout(timer); reject(new Error('Не удалось пройти проверку на робота')); }
+        });
+      };
+      if (window.turnstile) return mount();
+      const sc = document.createElement('script');
+      sc.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      sc.async = true;
+      sc.onload = mount;
+      sc.onerror = () => reject(new Error('Не удалось загрузить проверку на робота'));
+      document.head.appendChild(sc);
+    });
+  }
+
   window.getTrial = async function() {
     if (!currentUser) {
       showToast('Сначала войдите в аккаунт', true);
@@ -1267,41 +1464,58 @@
     btn.disabled = true;
 
     try {
+      // Email должен быть подтверждён — иначе воркер всё равно откажет
+      const u = auth.currentUser;
+      if (!u.emailVerified) {
+        await reload(u);
+        updateVerifyBar();
+        if (!u.emailVerified) {
+          showToast('Сначала подтвердите email — письмо уже отправлено', true);
+          return;
+        }
+      }
+
+      const turnstileToken = await getTurnstileToken();
+      // Свежий ID-токен: воркер проверяет его подпись и берёт из него uid/email
+      const idToken = await u.getIdToken(true);
+
       const response = await fetch(WORKER_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          email: currentUser.email,
-          uid: currentUser.uid
-        })
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + idToken
+        },
+        body: JSON.stringify({ turnstileToken })
       });
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Ошибка сервера (${response.status}). Попробуйте позже.`);
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || `Ошибка сервера (${response.status}). Попробуйте позже.`);
       }
 
-      const data = await response.json();
-
-      if (data.success) {
-        document.getElementById('trialKeyModal').style.display = 'flex';
-        document.getElementById('trialKeyInput').value = data.link;
-      } else {
-        showToast(data.error || 'Ошибка сервера', true);
-      }
+      document.getElementById('trialTitle').textContent =
+        data.existing ? 'Ваш пробный доступ' : 'Ваш пробный доступ готов!';
+      document.getElementById('trialKeyInput').value = data.link;
+      document.getElementById('trialKeyModal').style.display = 'flex';
     } catch (err) {
-      console.error("Сбой при получении ключа:", err);
-      showToast(err.message || 'Сетевая ошибка. Попробуйте позже.', true);
+      console.error('Сбой при получении ключа:', err);
+      const offline = err instanceof TypeError; // fetch не дошёл до сервера
+      showToast(offline ? 'Сетевая ошибка. Проверьте соединение и попробуйте снова' : (err.message || 'Ошибка. Попробуйте позже'), true);
     } finally {
       btn.innerHTML = originalText;
       btn.disabled = false;
     }
   }
 
-  window.copyTrialKey = function() {
+  window.copyTrialKey = async function() {
     const input = document.getElementById('trialKeyInput');
-    input.select();
-    document.execCommand('copy');
+    try {
+      await navigator.clipboard.writeText(input.value);
+    } catch {
+      input.select();
+      document.execCommand('copy');
+    }
     showToast('Ключ скопирован! Вставьте его в Happ или v2rayNG');
   }
 
@@ -1320,7 +1534,26 @@
   }
 
   document.querySelectorAll('.faq-item').forEach(item => {
-    item.addEventListener('click', () => item.classList.toggle('open'));
+    const q = item.querySelector('.faq-q');
+    q.setAttribute('role', 'button');
+    q.setAttribute('tabindex', '0');
+    q.setAttribute('aria-expanded', 'false');
+    const toggle = () => {
+      const open = item.classList.toggle('open');
+      q.setAttribute('aria-expanded', String(open));
+    };
+    item.addEventListener('click', (e) => { if (e.target.closest('a')) return; toggle(); });
+    q.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+    });
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    if (document.getElementById('authOverlay').classList.contains('active')) closeAuth();
+    closeTrialModal();
+  });
+  document.getElementById('trialKeyModal').addEventListener('click', (e) => {
+    if (e.target.id === 'trialKeyModal') closeTrialModal();
   });
   document.getElementById('authOverlay').addEventListener('click', (e) => {
     if (e.target.id === 'authOverlay') closeAuth();
