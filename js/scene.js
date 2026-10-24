@@ -1,7 +1,9 @@
 /* ══════════════════════════════════════════════════════════════
-   parallelogram.vpn — 3D-сцена
-   Туннель из светящихся параллелограммов: трафик внутри
-   зашифрованного канала. Шейдеры + собственный bloom.
+   parallelogram.vpn — 3D-сцена v2
+   Гироскоп из вложенных светящихся параллелограммов: объект
+   можно вращать перетаскиванием (инерция + автовращение).
+   Вокруг — частицы-пакеты и дальняя аллея рамок-границ.
+   Шейдеры + собственный bloom. Палитра — холодный белый неон.
    ══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
@@ -10,6 +12,7 @@
   if (!canvas || typeof THREE === 'undefined') return;
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isMobile = window.innerWidth < 900;
 
   let renderer;
   try {
@@ -31,6 +34,14 @@
   renderer.setSize(window.innerWidth, window.innerHeight, false);
   renderer.setClearColor(0x040406, 1);
 
+  // защита от сбоя GPU: теряем контекст — тихо гасим сцену, страница жива
+  let contextLost = false;
+  canvas.addEventListener('webglcontextlost', (e) => {
+    e.preventDefault();
+    contextLost = true;
+    canvas.style.display = 'none';
+  }, false);
+
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 120);
   const CAM_Z = 9;
@@ -41,7 +52,8 @@
     uniforms: {
       uTime: { value: 0 },
       uRes: { value: new THREE.Vector2(1, 1) },
-      uScroll: { value: 0 }
+      uScroll: { value: 0 },
+      uSpin: { value: 0 }
     },
     depthTest: false,
     depthWrite: false,
@@ -55,6 +67,7 @@
       uniform vec2 uRes;
       uniform float uTime;
       uniform float uScroll;
+      uniform float uSpin;
 
       float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
       float noise(vec2 p){
@@ -70,10 +83,11 @@
 
         vec3 col = vec3(0.014, 0.014, 0.018);
 
-        // холодное свечение в глубине туннеля
+        // холодное свечение за ядром гироскопа, пульсирует от вращения
         vec2 c = vec2(0.17, 0.02);
         float d = length((p - c) * vec2(1.0, 1.35));
-        col += vec3(0.055, 0.075, 0.105) * pow(max(0.0, 1.0 - d * 1.25), 3.4);
+        float beat = 1.0 + uSpin * 0.35;
+        col += vec3(0.055, 0.075, 0.105) * pow(max(0.0, 1.0 - d * 1.25), 3.4) * beat;
 
         // мягкая дымка
         float n = noise(p * 3.2 + vec2(uTime * 0.015, uTime * 0.01));
@@ -93,19 +107,7 @@
   quad.frustumCulled = false;
   quadScene.add(quad);
 
-  /* ── туннель параллелограммов ─────────────────────────────── */
-  const tunnel = new THREE.Group();
-  tunnel.position.x = window.innerWidth < 900 ? 0 : 1.7;
-  scene.add(tunnel);
-
-  const FRAME_W = 6.0;
-  const FRAME_H = 3.25;
-  const COUNT = 9;
-  const GAP = 4.6;
-  const TOTAL = COUNT * GAP;
-
-  const frameGeo = new THREE.PlaneGeometry(FRAME_W * 2, FRAME_H * 2, 1, 1);
-
+  /* ── шейдер рамки-параллелограмма (SDF) ───────────────────── */
   const frameVert = `
     varying vec2 vUv;
     void main(){
@@ -142,31 +144,32 @@
       float core = 1.0 - smoothstep(t * 0.45, t * 1.55, d);
       float halo = exp(-d * 3.4) * 0.42 + exp(-d * 0.9) * 0.10;
 
+      // редкий неоновый «сбой» линии
+      float glitch = step(0.996, sin(uTime * 9.1 + uSeed * 31.0)) * 0.35;
+
       // вторая, внутренняя линия — как рамка на логотипе
       float d2 = abs(sdBox(p, b * 0.78));
       float inner = (1.0 - smoothstep(t * 0.4, t * 1.3, d2)) * 0.22;
 
       float edgeFade = smoothstep(0.0, 1.2, uSize.x - abs(p.x));
 
-      vec3 col = uColor * (core * 1.35 + halo + inner);
+      vec3 col = uColor * (core * (1.35 + glitch) + halo + inner);
       col *= edgeFade;
 
       gl_FragColor = vec4(col * uOpacity, 1.0);
     }
   `;
 
-  const frames = [];
-  const COLORS = [0xdfe9ff, 0xbfd4ff, 0xeaf2ff, 0xcfe0ff, 0xffffff];
-
-  for (let i = 0; i < COUNT; i++) {
+  function makeFrame(w, h, shear, color) {
+    const geo = new THREE.PlaneGeometry(w * 2, h * 2, 1, 1);
     const mat = new THREE.ShaderMaterial({
       uniforms: {
-        uColor: { value: new THREE.Color(COLORS[i % COLORS.length]) },
-        uSize: { value: new THREE.Vector2(FRAME_W, FRAME_H) },
-        uShear: { value: 0.34 + (i % 3) * 0.06 },
+        uColor: { value: new THREE.Color(color) },
+        uSize: { value: new THREE.Vector2(w, h) },
+        uShear: { value: shear },
         uOpacity: { value: 0 },
         uTime: { value: 0 },
-        uSeed: { value: i * 0.37 }
+        uSeed: { value: Math.random() }
       },
       vertexShader: frameVert,
       fragmentShader: frameFrag,
@@ -175,85 +178,99 @@
       depthTest: false,
       blending: THREE.AdditiveBlending
     });
-
-    const mesh = new THREE.Mesh(frameGeo, mat);
-    mesh.position.set(0, 0, 2 - i * GAP);
-    mesh.rotation.z = (i % 2 ? 1 : -1) * 0.035;
-    mesh.rotation.y = (i % 3 - 1) * 0.05;
+    const mesh = new THREE.Mesh(geo, mat);
     mesh.frustumCulled = false;
-    tunnel.add(mesh);
-
-    frames.push({ mesh: mesh, baseRot: mesh.rotation.z, phase: i * 0.6 });
+    return mesh;
   }
 
-  /* ── частицы «пакетов» ────────────────────────────────────── */
-  const PCOUNT = window.innerWidth < 900 ? 420 : 900;
-  const pGeo = new THREE.BufferGeometry();
-  const pPos = new Float32Array(PCOUNT * 3);
-  const pSeed = new Float32Array(PCOUNT);
-  const pSize = new Float32Array(PCOUNT);
+  /* ── ГИРОСКОП: вложенные параллелограммы в настоящем 3D ───── */
+  const gyro = new THREE.Group();
+  scene.add(gyro);
 
-  for (let i = 0; i < PCOUNT; i++) {
-    const r = 1.2 + Math.pow(Math.random(), 0.65) * 6.4;
-    const a = Math.random() * Math.PI * 2;
-    pPos[i * 3] = Math.cos(a) * r;
-    pPos[i * 3 + 1] = Math.sin(a) * r * 0.62;
-    pPos[i * 3 + 2] = 8 - Math.random() * 58;
-    pSeed[i] = Math.random();
-    pSize[i] = 0.4 + Math.random() * 1.5;
+  const RING_COUNT = isMobile ? 4 : 6;
+  const rings = [];
+
+  for (let i = 0; i < RING_COUNT; i++) {
+    const k = i / (RING_COUNT - 1);                 // 0..1 от внешнего к внутреннему
+    const size = 3.35 - k * 2.35;                   // 3.35 → 1.0
+    const ring = makeFrame(
+      size,
+      size * 0.56,
+      0.34 + (i % 3) * 0.07,
+      [0xffffff, 0xdfe9ff, 0xcfe0ff, 0xeaf2ff, 0xbfd4ff][i % 5]
+    );
+
+    // «апертурный» старт: рамки раскрыты к камере, в плоскости — ровный веер,
+    // поэтому при загрузке сразу читается гироскоп, а не «полоски» ребром
+    const holder = new THREE.Object3D();
+    holder.rotation.set(
+      0.1 + (i % 3) * 0.05,
+      (i % 2 ? 1 : -1) * (0.06 + (i % 4) * 0.035),
+      0
+    );
+    holder.add(ring);
+    gyro.add(holder);
+
+    rings.push({
+      holder: holder,
+      mesh: ring,
+      idx: i,
+      spin: (i % 2 ? 1 : -1) * (0.09 + 0.06 * ((i * 7) % 5)),    // рад/с вокруг своей оси
+      prec: (i % 2 ? 1 : -1) * (0.05 + 0.02 * (i % 4)),          // прецессия держателя
+      phase: i * (Math.PI / RING_COUNT) * 1.05,                  // веер в плоскости
+      baseTilt: holder.rotation.clone(),
+      wave: 0.9 + 0.1 * Math.sin(i)
+    });
   }
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
-  pGeo.setAttribute('aSeed', new THREE.BufferAttribute(pSeed, 1));
-  pGeo.setAttribute('aSize', new THREE.BufferAttribute(pSize, 1));
 
-  const pMat = new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uPixelRatio: { value: DPR },
-      uScroll: { value: 0 }
-    },
-    vertexShader: `
-      attribute float aSeed;
-      attribute float aSize;
-      uniform float uTime;
-      uniform float uPixelRatio;
-      uniform float uScroll;
-      varying float vAlpha;
-
-      void main(){
-        vec3 p = position;
-        vec4 mv = modelViewMatrix * vec4(p, 1.0);
-        gl_Position = projectionMatrix * mv;
-
-        float dist = max(-mv.z, 0.5);
-        gl_PointSize = aSize * uPixelRatio * (16.0 / dist);
-        gl_PointSize = clamp(gl_PointSize, 0.7, 26.0);
-
-        float tw = 0.55 + 0.45 * sin(uTime * (0.7 + aSeed * 2.2) + aSeed * 40.0);
-        vAlpha = tw * (0.25 + uScroll * 0.15) * (1.0 - smoothstep(24.0, 44.0, dist));
-      }
-    `,
+  /* ── ядро: светящийся «пакет» в центре ────────────────────── */
+  const coreMat = new THREE.ShaderMaterial({
+    uniforms: { uTime: { value: 0 }, uBoost: { value: 0 }, uIntro: { value: 0 } },
+    vertexShader: frameVert,
     fragmentShader: `
-      precision mediump float;
-      varying float vAlpha;
+      precision highp float;
+      varying vec2 vUv;
+      uniform float uTime;
+      uniform float uBoost;
+      uniform float uIntro;
       void main(){
-        vec2 c = gl_PointCoord - 0.5;
-        float d = length(c);
-        float a = smoothstep(0.5, 0.05, d);
-        if (a * vAlpha < 0.003) discard;
-        gl_FragColor = vec4(vec3(0.82, 0.90, 1.0), a * vAlpha);
+        float d = length((vUv - 0.5) * 2.0);
+        float pulse = 0.86 + 0.14 * sin(uTime * 2.1);
+        float glow = exp(-d * 5.2) * 1.35 + exp(-d * 1.7) * 0.16;
+        vec3 col = mix(vec3(0.78, 0.87, 1.0), vec3(1.0), 0.55);
+        float a = glow * pulse * (1.0 + uBoost) * uIntro;
+        if (a < 0.004) discard;
+        gl_FragColor = vec4(col * a, 1.0);
       }
     `,
     transparent: true,
     depthWrite: false,
+    depthTest: false,
     blending: THREE.AdditiveBlending
   });
+  const core = new THREE.Mesh(new THREE.PlaneGeometry(5.5, 5.5), coreMat);
+  core.frustumCulled = false;
+  gyro.add(core);
 
-  const points = new THREE.Points(pGeo, pMat);
-  points.frustumCulled = false;
-  scene.add(points);
+  /* ── дальняя аллея рамок-границ ────────────────────────────── */
+  const alley = new THREE.Group();
+  scene.add(alley);
 
-  /* ── постобработка ────────────────────────────────────────── */
+  const ALLEY_COUNT = isMobile ? 5 : 7;
+  const ALLEY_GAP = 5.2;
+  const ALLEY_TOTAL = ALLEY_COUNT * ALLEY_GAP;
+  const alleyFrames = [];
+
+  for (let i = 0; i < ALLEY_COUNT; i++) {
+    const f = makeFrame(6.0, 3.25, 0.34 + (i % 3) * 0.06, [0xdfe9ff, 0xbfd4ff, 0xeaf2ff][i % 3]);
+    f.position.set(0, 0, 2 - i * ALLEY_GAP);
+    f.rotation.z = (i % 2 ? 1 : -1) * 0.035;
+    f.rotation.y = (i % 3 - 1) * 0.05;
+    alley.add(f);
+    alleyFrames.push({ mesh: f, baseRot: f.rotation.z, phase: i * 0.6 });
+  }
+
+  /* ── постобработка: bright-pass → гауссов bloom → композит ─── */
   const rtScene = new THREE.WebGLRenderTarget(2, 2, {
     type: THREE.HalfFloatType,
     minFilter: THREE.LinearFilter,
@@ -351,6 +368,15 @@
         vec3 bloom = texture2D(tBloom, uv).rgb;
         vec3 col = base + bloom * uBloom;
 
+        // отражение в «полу»
+        float horizon = 0.58;
+        if (uv.y < horizon) {
+          vec2 ruv = vec2(uv.x, horizon * 2.0 - uv.y);
+          float fade = smoothstep(horizon, horizon - 0.36, uv.y);
+          vec3 refl = texture2D(tBase, ruv).rgb + texture2D(tBloom, ruv).rgb * 1.25;
+          col += refl * 0.30 * fade * fade;
+        }
+
         col *= 1.0 - 0.42 * smoothstep(0.34, 1.0, length(d) * 1.22);
 
         float g = hash(uv * uRes + fract(uTime) * 57.0) - 0.5;
@@ -366,6 +392,21 @@
   });
 
   /* ── размеры ──────────────────────────────────────────────── */
+  function layout() {
+    const mobile = window.innerWidth < 900;
+    if (mobile) {
+      gyro.scale.setScalar(0.66);
+      gyro.position.set(0, 2.0, 0);
+      alley.scale.setScalar(0.7);
+      alley.position.set(0, 2.0, 0);
+    } else {
+      gyro.scale.setScalar(1);
+      gyro.position.set(1.7, 0, 0);
+      alley.scale.setScalar(1);
+      alley.position.set(1.7, 0, 0);
+    }
+  }
+
   function resize() {
     const w = Math.max(1, window.innerWidth);
     const h = Math.max(1, window.innerHeight);
@@ -387,25 +428,85 @@
 
     bgMat.uniforms.uRes.value.set(w, h);
     compositeMat.uniforms.uRes.value.set(bw, bh);
-    pMat.uniforms.uPixelRatio.value = dpr;
 
-    if (w < 900) {
-      tunnel.scale.setScalar(0.7);
-      tunnel.position.set(0, 2.0, 0);
-    } else {
-      tunnel.scale.setScalar(1);
-      tunnel.position.set(1.7, 0, 0);
-    }
+    layout();
   }
   resize();
 
-  /* ── интерактив ───────────────────────────────────────────── */
+  /* ── HUD: телеметрия вращения ─────────────────────────────── */
+  let hud = null;
+  const hero = document.querySelector('.hero');
+  if (hero && !isMobile) {
+    hud = document.createElement('div');
+    hud.className = 'scene-hud';
+    hud.setAttribute('aria-hidden', 'true');
+    hero.appendChild(hud);
+  }
+
+  /* ── интерактив: курсор ────────────────────────────────────── */
   const pointer = { x: 0, y: 0, tx: 0, ty: 0 };
   window.addEventListener('pointermove', (e) => {
     pointer.tx = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.ty = (e.clientY / window.innerHeight) * 2 - 1;
   }, { passive: true });
 
+  /* ── интерактив: вращение гироскопа перетаскиванием ────────── */
+  const DRAG_YAW_K = 0.0052;    // рад на пиксель по горизонтали
+  const DRAG_PITCH_K = 0.0034;  // рад на пиксель по вертикали
+  const spin = {
+    yaw: 0, pitch: 0,          // накопленный поворот группы
+    velYaw: 0, velPitch: 0,    // угловые скорости (инерция), рад/с
+    dragging: false,
+    lastX: 0, lastY: 0,
+    idle: 0                    // секунд без взаимодействия — возврат автовращения
+  };
+
+  const AUTO_YAW = reduceMotion ? 0 : 0.12;    // рад/с базовое автовращение
+  const AUTO_PITCH = reduceMotion ? 0 : 0.045;
+
+  if (hero) {
+    hero.style.touchAction = 'pan-y';
+    hero.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('button, a, input, textarea, select, [role="button"], .auth-overlay')) return;
+      spin.dragging = true;
+      spin.lastX = e.clientX;
+      spin.lastY = e.clientY;
+      spin.idle = 0;
+      spin.velYaw = 0;
+      spin.velPitch = 0;
+      document.body.classList.add('is-dragging-scene');
+      try { hero.setPointerCapture(e.pointerId); } catch (err) {}
+    });
+    hero.addEventListener('pointermove', (e) => {
+      if (!spin.dragging) return;
+      const dx = e.clientX - spin.lastX;
+      const dy = e.clientY - spin.lastY;
+      spin.lastX = e.clientX;
+      spin.lastY = e.clientY;
+
+      // прямое управление: объект следует за рукой
+      spin.yaw += dx * DRAG_YAW_K;
+      spin.pitch += dy * DRAG_PITCH_K;
+      spin.pitch = Math.max(-0.55, Math.min(0.55, spin.pitch));
+
+      // оценка мгновенной скорости для инерции (события ≈ по кадрам)
+      const estYaw = dx * DRAG_YAW_K * 60;
+      const estPitch = dy * DRAG_PITCH_K * 60;
+      spin.velYaw += (estYaw - spin.velYaw) * 0.4;
+      spin.velPitch += (estPitch - spin.velPitch) * 0.4;
+    });
+    const endDrag = () => {
+      if (!spin.dragging) return;
+      spin.dragging = false;
+      spin.idle = 0;
+      document.body.classList.remove('is-dragging-scene');
+    };
+    hero.addEventListener('pointerup', endDrag);
+    hero.addEventListener('pointercancel', endDrag);
+    hero.addEventListener('pointerleave', endDrag);
+  }
+
+  /* ── скролл ────────────────────────────────────────────────── */
   let scrollTarget = 0;
   let scrollSmooth = 0;
   function readScroll() {
@@ -421,6 +522,9 @@
   let elapsed = 0;
   let degraded = false;
   let lastOpacity = -1;
+  let hudTick = 0;
+  let introAt = -1;                 // момент снятия прелоадера — старт каскадного входа
+  let cheapTick = 0;                // прорежение кадров, когда hero вне экрана
 
   function smoothstep(a, b, x) {
     const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -430,9 +534,16 @@
   function render() {
     requestAnimationFrame(render);
 
+    if (contextLost) return;   // GPU сбросил контекст — не дёргаем мёртвый renderer
+
     const dt = Math.min(clock.getDelta(), 0.05);
     const t = clock.elapsedTime;
     const at = reduceMotion ? 0 : t;
+
+    /* экономия GPU: hero полностью ушел вверх — рендерим каждый третий кадр,
+       чтобы сцена не душила страницу внизу (тарифы, FAQ) */
+    cheapTick++;
+    if (window.scrollY > window.innerHeight * 1.3 && (cheapTick % 3) !== 0) return;
 
     /* адаптивное качество */
     framesCount++;
@@ -454,51 +565,98 @@
     const kScroll = 1 - Math.exp(-dt * 4.5);
     scrollSmooth += (scrollTarget - scrollSmooth) * kScroll;
 
+    const heroFade = 1 - smoothstep(0.006, 0.075, scrollSmooth);  // 1 в hero → 0 ниже
     const speed = reduceMotion ? 0.6 : 2.3 + scrollSmooth * 5.0;
+
+    /* физика вращения */
+    spin.idle += dt;
+    if (!spin.dragging) {
+      const damp = Math.pow(0.09, dt);            // затухание инерции после броска
+      spin.velYaw *= damp;
+      spin.velPitch *= damp;
+      // автовращение плавно возвращается, когда инерция утихла
+      const idleK = smoothstep(0.9, 2.8, spin.idle);
+      spin.yaw += spin.velYaw * dt + AUTO_YAW * (0.3 + 0.7 * idleK) * dt;
+      spin.pitch += spin.velPitch * dt + AUTO_PITCH * idleK * dt;
+      spin.pitch = Math.max(-0.55, Math.min(0.55, spin.pitch));
+      spin.pitch *= Math.pow(0.5, dt * 0.1);      // pitch медленно возвращается к нулю
+    }
+    const spinEnergy = Math.min(1, Math.abs(spin.velYaw) * 3 + Math.abs(spin.velPitch) * 4);
 
     /* камера */
     camera.position.x = pointer.x * 0.55;
     camera.position.y = -pointer.y * 0.38;
     camera.position.z = CAM_Z - (reduceMotion ? 0 : Math.sin(at * 0.24) * 0.25);
-    camera.lookAt(tunnel.position.x * 0.35, 0, -12);
+    camera.lookAt(1.7 * 0.35 * (window.innerWidth < 900 ? 0 : 1), 0, -12);
     camera.rotation.z = pointer.x * 0.012;
 
-    /* рамки */
-    for (let i = 0; i < frames.length; i++) {
-      const f = frames[i];
+    /* каскадный вход после прелоадера */
+    if (introAt < 0 && (document.body.classList.contains('booted') || t > 4)) introAt = t;
+    const introT = introAt < 0 ? 0 : t - introAt;
+
+    /* гироскоп */
+    gyro.rotation.y = spin.yaw;
+    gyro.rotation.x = spin.pitch;
+    gyro.rotation.z = (reduceMotion ? 0 : Math.sin(at * 0.1) * 0.02) + scrollSmooth * 0.08;
+
+    // уход гироскопа при скролле — объект «отпускает» страницу
+    gyro.position.y = (window.innerWidth < 900 ? 2.0 : 0) + scrollSmooth * 10.0;
+    const gyroScale = (window.innerWidth < 900 ? 0.66 : 1) * (1 - scrollSmooth * 0.35);
+    gyro.scale.setScalar(gyroScale);
+
+    for (let i = 0; i < rings.length; i++) {
+      const r = rings[i];
+      r.mesh.rotation.z = reduceMotion ? r.phase : at * r.spin + r.phase;
+      r.holder.rotation.z = r.baseTilt.z + (reduceMotion ? 0 : at * r.prec * 0.35);
+      const wave = 0.8 + 0.2 * Math.sin(at * 0.8 + r.phase);
+      const introK = smoothstep(0, 0.75, introT - r.idx * 0.1);
+      r.mesh.scale.setScalar(0.9 + 0.1 * introK);
+      r.mesh.material.uniforms.uOpacity.value = r.wave * wave * (0.68 + spinEnergy * 0.3) * (0.35 + 0.65 * heroFade) * introK;
+      r.mesh.material.uniforms.uTime.value = at;
+    }
+
+    coreMat.uniforms.uTime.value = at;
+    coreMat.uniforms.uBoost.value = spinEnergy * 0.8;
+    coreMat.uniforms.uIntro.value = smoothstep(0, 0.6, introT);
+
+    /* аллея рамок */
+    for (let i = 0; i < alleyFrames.length; i++) {
+      const f = alleyFrames[i];
       const m = f.mesh;
 
       m.position.z += speed * dt;
-      if (m.position.z > CAM_Z - 1) m.position.z -= TOTAL;
+      if (m.position.z > CAM_Z - 1) m.position.z -= ALLEY_TOTAL;
 
       const dist = CAM_Z - m.position.z;
-      const nearFade = smoothstep(0.6, 4.6, dist);
+      // ближние рамки гасим раньше — иначе они становятся полосами во всю ширину
+      const nearFade = smoothstep(2.6, 7.2, dist);
       const farFade = 1 - smoothstep(26.0, 46.0, dist);
       const wave = 0.82 + 0.18 * Math.sin(at * 0.8 + f.phase);
 
-      m.material.uniforms.uOpacity.value = nearFade * farFade * wave * 0.78;
+      m.material.uniforms.uOpacity.value = nearFade * farFade * wave * 0.32 * (0.3 + 0.7 * heroFade) * (0.35 + 0.65 * smoothstep(0, 0.5, introT));
       m.material.uniforms.uTime.value = at;
       m.rotation.z = f.baseRot + (reduceMotion ? 0 : Math.sin(at * 0.16 + f.phase) * 0.03);
     }
-
-    tunnel.rotation.z = (reduceMotion ? 0 : Math.sin(at * 0.1) * 0.015) + scrollSmooth * 0.05;
-    tunnel.rotation.y = pointer.x * 0.05;
-
-    /* частицы */
-    const arr = pGeo.attributes.position.array;
-    const drift = speed * 0.55;
-    for (let i = 0; i < PCOUNT; i++) {
-      arr[i * 3 + 2] += (0.6 + pSeed[i] * 1.6) * drift * dt;
-      if (arr[i * 3 + 2] > CAM_Z) {
-        arr[i * 3 + 2] -= 62;
-      }
-    }
-    pGeo.attributes.position.needsUpdate = true;
-    pMat.uniforms.uTime.value = at;
-    pMat.uniforms.uScroll.value = scrollSmooth;
+    alley.rotation.z = (reduceMotion ? 0 : Math.sin(at * 0.1) * 0.015) + scrollSmooth * 0.05;
+    alley.rotation.y = pointer.x * 0.05;
 
     bgMat.uniforms.uTime.value = at;
     bgMat.uniforms.uScroll.value = scrollSmooth;
+    bgMat.uniforms.uSpin.value = spinEnergy;
+
+    /* HUD телеметрии */
+    if (hud) {
+      hudTick += dt;
+      if (hudTick > 0.12) {
+        hudTick = 0;
+        const deg = ((spin.yaw * 57.2958) % 360 + 360) % 360;
+        const vel = (spin.velYaw * 57.2958).toFixed(0);
+        hud.textContent =
+          'GYRO θ ' + String(Math.round(deg)).padStart(3, '0') + '°' +
+          ' · φ ' + (spin.pitch * 57.2958).toFixed(1) + '°' +
+          ' · ω ' + (vel >= 0 ? '+' : '') + vel + '°/s';
+      }
+    }
 
     /* затухание сцены под контентом */
     const op = 1 - 0.72 * smoothstep(0.006, 0.075, scrollSmooth);

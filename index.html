@@ -23,11 +23,26 @@
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
 <link rel="stylesheet" href="styles.css">
+<noscript><style>.loader{display:none!important}</style></noscript>
 </head>
 <body>
 
+<!-- ПРЕЛОАДЕР -->
+<div class="loader" id="loader" aria-hidden="true">
+  <div class="loader__box">
+    <svg class="loader__mark" viewBox="0 0 132 76" fill="none">
+      <polygon class="loader__outer" points="34,7 131,7 98,69 1,69"/>
+      <polygon class="loader__inner" points="44,17 114,17 90,59 20,59"/>
+    </svg>
+    <div class="loader__pct" id="loaderPct">00</div>
+    <div class="loader__bar"><i id="loaderBar"></i></div>
+    <div class="loader__tag">ESTABLISHING SECURE CHANNEL</div>
+  </div>
+</div>
+
 <canvas id="scene" aria-hidden="true"></canvas>
 <div class="grain" aria-hidden="true"></div>
+<div class="progress" id="progress" aria-hidden="true"></div>
 
 <nav class="nav" id="nav">
   <button class="logo" onclick="scrollToSection('top')" aria-label="На главную">
@@ -60,6 +75,11 @@
 
 <section class="hero" id="top">
   <div class="hero__scrim" aria-hidden="true"></div>
+
+  <div class="hero__drag-hint" aria-hidden="true">
+    <svg viewBox="0 0 24 24"><path d="M9 12h6M9 12l2.2-2.2M9 12l2.2 2.2M15 12l-2.2-2.2M15 12l-2.2 2.2"/></svg>
+    <span>тяните — вращайте</span>
+  </div>
 
   <div class="hero__inner">
     <div class="badge">
@@ -191,38 +211,53 @@
   <h2 class="section-title reveal">Наши серверы</h2>
   <p class="section-sub reveal">Мы расширяемся. Новые локации появятся в ближайшее время.</p>
 
-  <div class="servers-wrap">
-    <div class="server reveal">
-      <span class="server-flag">US</span>
-      <span class="server-body">
-        <span class="server-name">США · Нью-Йорк</span>
-        <span class="server-meta">10 Gbps · Reality</span>
-      </span>
-      <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
+  <div class="servers-stage reveal">
+    <div class="globe-wrap" aria-hidden="false">
+      <canvas id="globe" aria-label="Интерактивный глобус: серверы parallelogram.vpn" role="img"></canvas>
+      <div class="globe-hint" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M9 12h6M9 12l2.2-2.2M9 12l2.2 2.2M15 12l-2.2-2.2M15 12l-2.2 2.2"/></svg>
+        <span>тяните, чтобы вращать</span>
+      </div>
+      <div class="globe-legend" aria-hidden="true">
+        <span><i class="legend-dot legend-dot--on"></i>онлайн</span>
+        <span><i class="legend-dot legend-dot--soon"></i>скоро</span>
+        <span class="globe-lat" id="globeLat">40.7°N · 74.0°W</span>
+      </div>
     </div>
-    <div class="server reveal">
-      <span class="server-flag">DE</span>
-      <span class="server-body">
-        <span class="server-name">Германия · Франкфурт</span>
-        <span class="server-meta">10 Gbps · Reality</span>
-      </span>
-      <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
-    </div>
-    <div class="server soon reveal">
-      <span class="server-flag">NL</span>
-      <span class="server-body">
-        <span class="server-name">Нидерланды</span>
-        <span class="server-meta">в разработке</span>
-      </span>
-      <span class="server-ping"><span class="ping-dot"></span>скоро</span>
-    </div>
-    <div class="server soon reveal">
-      <span class="server-flag">FI</span>
-      <span class="server-body">
-        <span class="server-name">Финляндия</span>
-        <span class="server-meta">в разработке</span>
-      </span>
-      <span class="server-ping"><span class="ping-dot"></span>скоро</span>
+
+    <div class="servers-wrap">
+      <div class="server reveal" data-node="us">
+        <span class="server-flag">US</span>
+        <span class="server-body">
+          <span class="server-name">США · Нью-Йорк</span>
+          <span class="server-meta">10 Gbps · Reality</span>
+        </span>
+        <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
+      </div>
+      <div class="server reveal" data-node="de">
+        <span class="server-flag">DE</span>
+        <span class="server-body">
+          <span class="server-name">Германия · Франкфурт</span>
+          <span class="server-meta">10 Gbps · Reality</span>
+        </span>
+        <span class="server-ping"><span class="ping-dot"></span>онлайн</span>
+      </div>
+      <div class="server soon reveal" data-node="nl">
+        <span class="server-flag">NL</span>
+        <span class="server-body">
+          <span class="server-name">Нидерланды</span>
+          <span class="server-meta">в разработке</span>
+        </span>
+        <span class="server-ping"><span class="ping-dot"></span>скоро</span>
+      </div>
+      <div class="server soon reveal" data-node="fi">
+        <span class="server-flag">FI</span>
+        <span class="server-body">
+          <span class="server-name">Финляндия</span>
+          <span class="server-meta">в разработке</span>
+        </span>
+        <span class="server-ping"><span class="ping-dot"></span>скоро</span>
+      </div>
     </div>
   </div>
 </section>
@@ -399,6 +434,46 @@
   </div>
 </section>
 
+<!-- РЕФЕРАЛЬНАЯ ПРОГРАММА -->
+<section class="referral" id="referral">
+  <div class="referral__panel">
+    <span class="referral__badge">+7 дней · обоим</span>
+
+    <div class="referral__grid">
+      <div class="referral__left">
+        <span class="referral__kicker">Партнёрская программа</span>
+        <h2 class="referral__title">Пригласите друга —<br>неделя <em class="serif">в подарок</em></h2>
+        <p class="referral__sub">
+          Друг регистрируется по вашей ссылке, подтверждает почту и получает первый ключ.
+          После этого мы добавляем 7 дней вам и 7 дней ему. Без лимита приглашений.
+        </p>
+
+        <ol class="referral__steps">
+          <li><span>01</span>Скопируйте личную ссылку</li>
+          <li><span>02</span>Друг регистрируется и подтверждает почту</li>
+          <li><span>03</span>Обоим начисляется 7 дней</li>
+        </ol>
+      </div>
+
+      <div class="referral__right">
+        <label class="referral__label" for="refLink">Ваша ссылка</label>
+        <div class="referral__box">
+          <input id="refLink" class="referral__input" type="text" readonly
+                 placeholder="Войдите, чтобы получить ссылку" aria-label="Ваша реферальная ссылка">
+          <button id="refCopy" class="btn btn-primary referral__copy" type="button">Скопировать</button>
+        </div>
+
+        <p class="referral__note" id="refNote">Войдите в аккаунт — ссылка появится здесь.</p>
+
+        <div class="referral__stats">
+          <div><span id="refInvites">0</span><small>приглашено</small></div>
+          <div><span id="refDays">0</span><small>бонусных дней</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="footer-top">
     <div class="footer-logo">
@@ -417,6 +492,7 @@
     <a href="terms.html">Пользовательское соглашение</a>
     <a href="privacy.html">Политика конфиденциальности</a>
     <a href="terms.html#refund">Возврат средств</a>
+    <a href="#referral">Пригласить друга</a>
     <a href="https://t.me/O_rbis" target="_blank" rel="noopener">Поддержка (@O_rbis)</a>
   </div>
 
@@ -866,6 +942,9 @@
 
 <script src="vendor/three.min.js"></script>
 <script src="js/scene.js"></script>
+<script src="js/globe.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/referral.js"></script>
+<script type="module" src="js/referral-net.js"></script>
 </body>
 </html>
