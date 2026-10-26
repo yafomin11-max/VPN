@@ -606,7 +606,13 @@
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
 
-  const WORKER_URL = "https://vpn.yafomin11.workers.dev";
+  // Основной адрес — собственный домен (не блокируется операторами),
+  // резерв — workers.dev (работает на части сетей). Кнопка пробного ключа
+  // перебирает оба при сетевых сбоях.
+  const WORKER_URLS = [
+    "https://parallelogram7.ru/api",
+    "https://vpn.yafomin11.workers.dev"
+  ];
 
   // Cloudflare Turnstile: вставьте Site Key (и задайте секрет в воркере), чтобы включить капчу.
   // Пустая строка — капча выключена.
@@ -878,14 +884,28 @@
       // Свежий ID-токен: воркер проверяет его подпись и берёт из него uid/email
       const idToken = await u.getIdToken(true);
 
-      const response = await fetch(WORKER_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer ' + idToken
-        },
-        body: JSON.stringify({ turnstileToken })
-      });
+      // Перебор адресов: первый успешный ответ побеждает,
+      // сетевой сбой (TypeError) уводит к следующему адресу.
+      let response = null;
+      let netError = null;
+      for (const base of WORKER_URLS) {
+        try {
+          response = await fetch(base, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + idToken
+            },
+            body: JSON.stringify({ turnstileToken })
+          });
+          netError = null;
+          break;
+        } catch (e) {
+          if (e instanceof TypeError) { netError = e; response = null; continue; }
+          throw e;
+        }
+      }
+      if (!response) throw (netError || new TypeError('Нет доступных адресов сервера'));
 
       const data = await response.json().catch(() => ({}));
 
