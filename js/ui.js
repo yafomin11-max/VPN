@@ -130,14 +130,91 @@
 })();
 
 /* ══════════════════════════════════════════════════════════════
-   v2: прелоадер, неоновый курсор, прогресс скролла,
-   3D-tilt карточек, магнитные кнопки, скрэмбл-текст
+   v2: прелоадер, прогресс скролла, 3D-tilt карточек,
+   магнитные кнопки, скрэмбл-текст, мобильное меню, вибро
    ══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const finePointer = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+
+  // вибро-отклик на телефонах (безопасно: игнорируется там, где нет API)
+  const buzz = (ms) => {
+    if (navigator.vibrate) { try { navigator.vibrate(ms); } catch (e) {} }
+  };
+
+  /* ── мобильное меню ───────────────────────────────────────── */
+  (function mobileMenu() {
+    const burger = document.getElementById('navBurger');
+    const menu = document.getElementById('mobileMenu');
+    if (!burger || !menu) return;
+
+    function setOpen(v) {
+      menu.classList.toggle('open', v);
+      burger.classList.toggle('is-open', v);
+      burger.setAttribute('aria-expanded', String(v));
+      menu.setAttribute('aria-hidden', String(!v));
+      document.body.classList.toggle('menu-open', v);
+      buzz(v ? 12 : 6);
+    }
+
+    burger.addEventListener('click', () => {
+      setOpen(!menu.classList.contains('open'));
+    });
+    Array.prototype.forEach.call(menu.querySelectorAll('button'), (b) => {
+      b.addEventListener('click', () => setOpen(false));
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && menu.classList.contains('open')) setOpen(false);
+    });
+  })();
+
+  /* ── вибро-отклик на главных кнопках ──────────────────────── */
+  (function haptics() {
+    if (!('vibrate' in navigator)) return;
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#trialBtn, .plan .btn, #refCopy, .nav-cta, .nav-burger, .mobile-menu button, .referral__copy')) return;
+      buzz(8);
+    }, { passive: true });
+  })();
+
+  /* ── PWA: регистрация сервис-воркера ──────────────────────── */
+  (function pwa() {
+    if (!('serviceWorker' in navigator)) return;
+    const host = location.hostname;
+    if (location.protocol !== 'https:' && host !== 'localhost' && host !== '127.0.0.1') return;
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    });
+  })();
+
+  /* ── PWA: кнопка «Установить приложение» ───────────────────── */
+  (function installPrompt() {
+    const chip = document.getElementById('installChip');
+    if (!chip) return;
+    let deferred = null;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferred = e;
+      chip.hidden = false;
+    });
+
+    chip.addEventListener('click', async () => {
+      buzz(8);
+      if (!deferred) return;
+      deferred.prompt();
+      try { await deferred.userChoice; } catch (err) {}
+      deferred = null;
+      chip.hidden = true;
+    });
+
+    window.addEventListener('appinstalled', () => {
+      deferred = null;
+      chip.hidden = true;
+    });
+  })();
 
   /* ── прелоадер ────────────────────────────────────────────── */
   (function preloader() {
@@ -247,7 +324,7 @@
   (function scramble() {
     if (reduceMotion) return;
     const GLYPHS = '█▓▒░<>/\\|#*+—0123456789ABCDEF';
-    const tags = document.querySelectorAll('.sec-tag, .referral__kicker');
+    const tags = document.querySelectorAll('.sec-tag, .referral__kicker, .stat-value');
 
     function decode(el) {
       const original = el.getAttribute('data-text') || el.textContent;

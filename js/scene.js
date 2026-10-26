@@ -395,10 +395,10 @@
   function layout() {
     const mobile = window.innerWidth < 900;
     if (mobile) {
-      gyro.scale.setScalar(0.66);
-      gyro.position.set(0, 2.0, 0);
+      gyro.scale.setScalar(0.8);
+      gyro.position.set(0, 1.6, 0);
       alley.scale.setScalar(0.7);
-      alley.position.set(0, 2.0, 0);
+      alley.position.set(0, 1.6, 0);
     } else {
       gyro.scale.setScalar(1);
       gyro.position.set(1.7, 0, 0);
@@ -449,6 +449,27 @@
     pointer.tx = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.ty = (e.clientY / window.innerHeight) * 2 - 1;
   }, { passive: true });
+
+  /* ── интерактив: наклон телефона → параллакс сцены ────────── */
+  const coarsePointer = window.matchMedia('(pointer:coarse)').matches;
+  const tilt = { tx: 0, ty: 0, sx: 0, sy: 0, on: false };
+  if (coarsePointer && !reduceMotion) {
+    window.addEventListener('deviceorientation', (e) => {
+      if (typeof e.gamma !== 'number' || typeof e.beta !== 'number') return;
+      if (!tilt.on) {
+        tilt.on = true;
+        // подсказку про drag меняем на «наклоняй» и показываем
+        const hint = document.querySelector('.hero__drag-hint');
+        if (hint) {
+          const span = hint.querySelector('span');
+          if (span) span.textContent = 'наклоняй — вращай';
+          hint.classList.add('tilt-mode');
+        }
+      }
+      tilt.tx = Math.max(-1, Math.min(1, e.gamma / 26));
+      tilt.ty = Math.max(-1, Math.min(1, (e.beta - 42) / 38));
+    }, { passive: true });
+  }
 
   /* ── интерактив: вращение гироскопа перетаскиванием ────────── */
   const DRAG_YAW_K = 0.0052;    // рад на пиксель по горизонтали
@@ -562,6 +583,15 @@
     pointer.x += (pointer.tx - pointer.x) * kPtr;
     pointer.y += (pointer.ty - pointer.y) * kPtr;
 
+    // наклон телефона плавно ведёт камеру (между касаниями)
+    if (tilt.on) {
+      const kT = 1 - Math.exp(-dt * 2.2);
+      tilt.sx += (tilt.tx - tilt.sx) * kT;
+      tilt.sy += (tilt.ty - tilt.sy) * kT;
+      pointer.tx = tilt.sx;
+      pointer.ty = tilt.sy;
+    }
+
     const kScroll = 1 - Math.exp(-dt * 4.5);
     scrollSmooth += (scrollTarget - scrollSmooth) * kScroll;
 
@@ -600,8 +630,8 @@
     gyro.rotation.z = (reduceMotion ? 0 : Math.sin(at * 0.1) * 0.02) + scrollSmooth * 0.08;
 
     // уход гироскопа при скролле — объект «отпускает» страницу
-    gyro.position.y = (window.innerWidth < 900 ? 2.0 : 0) + scrollSmooth * 10.0;
-    const gyroScale = (window.innerWidth < 900 ? 0.66 : 1) * (1 - scrollSmooth * 0.35);
+    gyro.position.y = (window.innerWidth < 900 ? 1.6 : 0) + scrollSmooth * 10.0;
+    const gyroScale = (window.innerWidth < 900 ? 0.8 : 1) * (1 - scrollSmooth * 0.35);
     gyro.scale.setScalar(gyroScale);
 
     for (let i = 0; i < rings.length; i++) {

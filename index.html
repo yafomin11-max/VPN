@@ -10,6 +10,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="icon" href="favicon.ico" sizes="any">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="parallelogram.vpn">
 <meta property="og:locale" content="ru_RU">
@@ -22,7 +23,7 @@
 <meta name="twitter:card" content="summary_large_image">
 <link rel="preconnect" href="https://www.gstatic.com" crossorigin>
 <link rel="stylesheet" href="fonts/fonts.css">
-<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="styles.css?v=2510">
 <noscript><style>.loader{display:none!important}</style></noscript>
 </head>
 <body>
@@ -64,7 +65,20 @@
       <span class="nav-user-email" id="navUserEmail"></span>
       <button class="nav-logout" onclick="logout()">Выйти</button>
     </div>
+    <button class="nav-burger" id="navBurger" aria-label="Меню" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
   </div>
+</nav>
+
+<!-- МОБИЛЬНОЕ МЕНЮ -->
+<nav class="mobile-menu" id="mobileMenu" aria-hidden="true">
+  <button style="--i:1" onclick="scrollToSection('features')"><i>01</i>Возможности</button>
+  <button style="--i:2" onclick="scrollToSection('servers')"><i>02</i>Серверы</button>
+  <button style="--i:3" onclick="scrollToSection('pricing')"><i>03</i>Тарифы</button>
+  <button style="--i:4" onclick="scrollToSection('guide')"><i>04</i>Инструкция</button>
+  <button style="--i:5" onclick="scrollToSection('apps')"><i>05</i>Клиенты</button>
+  <button style="--i:6" onclick="scrollToSection('faq')"><i>06</i>FAQ</button>
 </nav>
 
 <div class="verify-bar" id="verifyBar" role="status">
@@ -106,6 +120,11 @@
     </div>
 
     <div id="turnstileBox"></div>
+
+    <button class="install-chip" id="installChip" hidden>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>
+      Установить приложение
+    </button>
 
     <div class="stats">
       <div class="stat">
@@ -941,9 +960,9 @@
 </script>
 
 <script src="vendor/three.min.js"></script>
-<script src="js/scene.js"></script>
-<script src="js/globe.js"></script>
-<script src="js/ui.js"></script>
+<script src="js/scene.js?v=2510"></script>
+<script src="js/globe.js?v=2510"></script>
+<script src="js/ui.js?v=2510"></script>
 <script src="js/referral.js"></script>
 <script type="module" src="js/referral-net.js"></script>
 </body>

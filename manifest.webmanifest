@@ -1,0 +1,39 @@
+{
+  "name": "parallelogram.vpn — Свобода без границ",
+  "short_name": "parallelogram",
+  "description": "VPN на VLESS + Reality: маскировка под обычный HTTPS, серверы в США и Германии, без логов активности.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#050507",
+  "theme_color": "#050507",
+  "categories": ["security", "utilities"],
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Тарифы",
+      "short_name": "Тарифы",
+      "url": "/?source=pwa#pricing",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Серверы",
+      "short_name": "Серверы",
+      "url": "/?source=pwa#servers",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Инструкция",
+      "short_name": "Инструкция",
+      "url": "/?source=pwa#guide",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
