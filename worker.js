@@ -40,6 +40,9 @@ export default {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: cors });
     }
+    if (new URL(request.url).pathname.startsWith("/app/")) {
+      return appHandle(request, env, ctx);
+    }
 
     try {
       if (request.method !== "POST") throw new HttpError(405, "Метод не поддерживается");
@@ -380,3 +383,184 @@ function isExpired(client) {
   const ts = typeof raw === "number" ? (raw > 1e12 ? raw : raw * 1000) : Date.parse(raw);
   return Number.isFinite(ts) && ts < Date.now();
 }
+
+// ═══ parallelogram.vpn — модуль «доступ через рекламу» (вариант для воркера vpn) ═══
+// Хранение — сама панель H1: клиент ad_<hash> с expires_at = срок 24 ч.
+// Использует существующие переменные воркера: API_BASE, API_TOKEN,
+// TRIAL_DEVICES, TRIAL_TRAFFIC_GB. Никаких новых биндингов не требуется.
+// Серверное время — из заголовка Date ответов панели / текущее время CF.
+const APP_ACCESS_TTL_SEC = 24 * 3600;
+const APP_SERVERS = [
+  { id: 'de', name: 'Германия · Франкфурт', host: '', port: 443 },
+  { id: 'us', name: 'США · Нью-Йорк', host: 'us2.h1cloud.net', port: 443 },
+];
+const nowSecApp = () => Math.floor(Date.now() / 1000);
+
+async function appHandle(request, env, ctx) {
+  const url = new URL(request.url);
+  const path = url.pathname.replace(/\/+$/, '');
+  const cors = {
+    'Access-Control-Allow-Origin': appPickOrigin(request, env),
+    'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Content-Type': 'application/json; charset=utf-8',
+  };
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors });
+  if (path === '/app/status' && request.method === 'GET') return appJson(await appStatus(url, env), cors);
+  if (path === '/app/grant' && request.method === 'POST') return appJson(await appGrant(request, env), cors);
+  return appJson({ ok: false, error: 'not_found' }, cors, 404);
+}
+
+function appPickOrigin(request, env) {
+  const o = request.headers.get('Origin') || '';
+  const allowed = String(env.ALLOWED_ORIGINS || 'https://parallelogram.vpn').split(',');
+  return allowed.includes(o) ? o : allowed[0].trim();
+}
+
+function appJson(obj, cors, status = 200) {
+  return new Response(JSON.stringify(obj), { status, headers: cors });
+}
+
+/* ── запросы к панели с автофолбэком на direct- ── */
+async function appApiFetch(env, path, init) {
+  const bases = [];
+  if (env.PANEL_API_URL) bases.push(env.PANEL_API_URL);
+  if (env.API_BASE) bases.push(env.API_BASE);
+  const tried = [];
+  for (const base of bases) {
+    const b = base.replace(/\/$/, '');
+    const variants = [b];
+    const m = b.match(/^(https?:\/\/)(.+?)\.h1cloud\.net(.*)$/);
+    if (m && !m[2].startsWith('direct-')) variants.push(m[1] + 'direct-' + m[2] + '.h1cloud.net' + m[3]);
+    for (const v of variants) {
+      try {
+        const res = await fetch(v + path, init);
+        return { res, baseUsed: v };
+      } catch (e) {
+        tried.push(v);
+      }
+    }
+  }
+  throw new Error('panel_unreachable: ' + tried.join(', '));
+}
+
+async function appNameFor(deviceId, serverId) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(deviceId + ':' + serverId));
+  const h = new DataView(digest).getUint32(0).toString(36);
+  return 'ad_' + h + '_' + serverId;
+}
+
+async function appClient(env, name) {
+  const { res } = await appApiFetch(env, '/clients/' + encodeURIComponent(name), {
+    headers: { Authorization: 'Bearer ' + env.API_TOKEN },
+  });
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error('panel_get_' + res.status);
+  const data = await res.json();
+  return data.client || data || null;
+}
+
+/* ── GET /app/status ── */
+async function appStatus(url, env) {
+  const deviceId = (url.searchParams.get('deviceId') || '').slice(0, 64);
+  const now = nowSecApp();
+  const servers = [];
+  for (const s of APP_SERVERS) {
+    const entry = { id: s.id, name: s.name, pingHost: s.host || null, pingPort: s.port };
+    if (deviceId && env.API_TOKEN) {
+      try {
+        const c = await appClient(env, await appNameFor(deviceId, s.id));
+        const exp = c ? Math.floor(Number(c.expires_at) || 0) : 0;
+        entry.expiresAt = exp > now ? exp : null;
+        entry.subUrl = entry.expiresAt ? (c.sub_url || c.subscription_url || null) : null;
+      } catch (e) {
+        entry.expiresAt = null;
+      }
+    } else {
+      entry.expiresAt = null;
+    }
+    servers.push(entry);
+  }
+  return {
+    ok: true,
+    serverTime: now,
+    backendConfigured: !!(env.API_BASE && env.API_TOKEN),
+    premiumUntil: null,
+    servers,
+  };
+}
+
+/* ── POST /app/grant — вызывается приложением только после onRewarded ── */
+async function appGrant(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return { ok: false, error: 'bad_json' };
+  }
+  const deviceId = String(body.deviceId || '').slice(0, 64);
+  const serverId = String(body.serverId || '').slice(0, 16);
+  if (!deviceId || !APP_SERVERS.some((s) => s.id === serverId)) {
+    return { ok: false, error: 'bad_request' };
+  }
+  if (!env.API_BASE || !env.API_TOKEN) {
+    return { ok: false, error: 'panel_not_configured' };
+  }
+  const name = await appNameFor(deviceId, serverId);
+  const now = nowSecApp();
+  const srv = APP_SERVERS.find((s) => s.id === serverId);
+  const mk = (expiresAt, subUrl) => ({
+    ok: true, serverTime: now, backendConfigured: true,
+    access: { serverId, name: srv.name, expiresAt, subUrl },
+  });
+  try {
+    const existing = await appClient(env, name);
+    if (existing) {
+      const exp = Math.floor(Number(existing.expires_at) || 0);
+      if (exp > now + 300) {
+        // доступ действует — идемпотентно, не продлеваем
+        return mk(exp, existing.sub_url || existing.subscription_url || null);
+      }
+      // истёк — продлеваем на сутки
+      const { res } = await appApiFetch(env, '/clients/' + encodeURIComponent(name), {
+        method: 'PATCH',
+        headers: { Authorization: 'Bearer ' + env.API_TOKEN, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ days: 1 }),
+      });
+      if (res.ok) {
+        const c = (await res.json()).client;
+        const fresh = c || existing;
+        return mk(Math.floor(Number(fresh.expires_at) || (now + APP_ACCESS_TTL_SEC)), fresh.sub_url || fresh.subscription_url || null);
+      }
+      return { ok: false, error: 'panel_patch_' + res.status };
+    }
+    // нового клиента нет — создаём на сутки с лимитами пробы
+    const payload = {
+      name,
+      days: 1,
+      device_limit: Number(env.TRIAL_DEVICES) || 2,
+      traffic_limit_gb: Number(env.TRIAL_TRAFFIC_GB) || 5,
+    };
+    const { res } = await appApiFetch(env, '/create', {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + env.API_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (res.status === 409) {
+      // уже существует (гонка) — перечитаем
+      const c = await appClient(env, name);
+      if (c) return mk(Math.floor(Number(c.expires_at) || 0), c.sub_url || c.subscription_url || null);
+    }
+    if (!res.ok) {
+      console.error('app grant create failed', res.status);
+      return { ok: false, error: 'panel_create_' + res.status };
+    }
+    const data = await res.json();
+    const c = data.client || data;
+    return mk(Math.floor(Number(c.expires_at) || (now + APP_ACCESS_TTL_SEC)), c.sub_url || c.subscription_url || null);
+  } catch (e) {
+    console.error('app grant error', e && e.message);
+    return { ok: false, error: 'panel_unreachable' };
+  }
+}
+
