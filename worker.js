@@ -521,10 +521,20 @@ async function appGrant(request, env) {
   const name = await appNameFor(deviceId, serverId);
   const now = nowSecApp();
   const srv = APP_SERVERS.find((s) => s.id === serverId);
-  const mk = (expiresAt, subUrl) => ({
-    ok: true, serverTime: now, backendConfigured: true,
-    access: { serverId, name: srv.name, expiresAt, subUrl },
-  });
+  const mk = async (expiresAt, subUrl) => {
+    // Скачиваем подписку СЕРВЕРОМ: телефон может не доставать до хоста панели
+    let subContent = null;
+    if (subUrl) {
+      try {
+        const r2 = await fetch(subUrl, { headers: { "User-Agent": "parallelogram-vpn" } });
+        if (r2.ok) subContent = await r2.text();
+      } catch (e) { /* отдаём без контента — приложение скачает само */ }
+    }
+    return {
+      ok: true, serverTime: now, backendConfigured: true,
+      access: { serverId, name: srv.name, expiresAt, subUrl, subContent },
+    };
+  };
   try {
     const existing = await appClient(env, name);
     if (existing) {
