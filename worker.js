@@ -159,11 +159,23 @@ function num(v, d) {
   return Number.isFinite(n) && n > 0 ? n : d;
 }
 
+const HARDCODED_ORIGINS = [
+  "https://parallelogram.vpn",
+  "https://www.parallelogram.vpn",
+  "https://yafomin11-max.github.io",
+  "https://parallelogram7.ru",
+  "https://little-robin-5362.yafomin11-max.deno.net",
+  "http://localhost:8901",
+  "http://localhost:8000",
+  "http://127.0.0.1:8901",
+];
+
 function allowedOrigins(env) {
   return String(env.ALLOWED_ORIGINS || "")
     .split(",")
     .map((s) => s.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .concat(HARDCODED_ORIGINS);
 }
 
 function isOriginAllowed(origin, env) {
